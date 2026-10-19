@@ -3,7 +3,7 @@
 ## Teste Técnico — Desenvolvedor(a) Fullstack Pleno
 
 > **Stack:** Java (Spring Boot) ou Node.js (NestJS / Express / Fastify) + React (Next.js é aceito) ou Angular
-> **Prazo:** 5 dias corridos a partir do recebimento (esforço estimado: 18–22 h, incluindo o vídeo)
+> **Prazo:** 7 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 20–25 h, incluindo o vídeo)
 > **Uso de IA:** permitido e esperado, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
 > **Entrega:** fork público no GitHub + **vídeo de 15 a 25 min** com roteiro obrigatório: arquitetura, fluxo completo ao vivo, percurso no código e decisões (ver [seção 8.1](#81-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-pleno`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 8](#8-instruções-de-entrega))
@@ -40,10 +40,11 @@ No dia a dia, dois aprovadores podem clicar ao mesmo tempo, o usuário pode reen
 
 | Papel | Descrição |
 |-------|-----------|
-| `SOLICITANTE` | Cria, edita (quando permitido), submete e cancela as **próprias** solicitações |
-| `APROVADOR` | Aprova, rejeita ou devolve para ajuste solicitações do **seu centro de custo**, conforme o seu nível (`approverLevel`) |
-| `ADMIN` | Gerencia usuários, centros de custo e orçamentos; vê tudo; é o único que aprova a etapa `ADMIN` |
+| `SOLICITANTE` | Cria, edita (quando permitido), submete e cancela as **próprias** solicitações. Não aprova |
+| `APROVADOR` | Tudo o que o solicitante faz e, além disso, aprova, rejeita ou devolve para ajuste solicitações do **seu centro de custo**, conforme o seu nível (`approverLevel`) |
+| `ADMIN` | Tudo o que os outros papéis fazem; gerencia usuários, centros de custo e orçamentos; vê tudo; é o único que aprova a etapa `ADMIN` |
 
+- **Qualquer papel pode criar solicitações.** É por isso que a segregação de funções (2.3) importa: um aprovador ou admin nunca aprova o que ele mesmo pediu.
 - Todo usuário pertence a **um centro de custo** (`costCenterId`). O `ADMIN` pode ser global.
 - Todo `APROVADOR` tem `approverLevel`: `NIVEL_1` ou `NIVEL_2`. Um `NIVEL_2` também pode aprovar etapas `NIVEL_1`.
 - O cadastro público (`/auth/register`) cria **apenas** `SOLICITANTE`. Outros papéis são criados por um `ADMIN`.
@@ -65,12 +66,12 @@ Você decide a modelagem, mas o sistema precisa representar pelo menos: **usuár
 
 ### 2.2 Solicitações de compra
 
-- Campos: `title`, `description`, `category`, `costCenterId` (padrão = o do solicitante), `neededBy` (data opcional, que precisa ser futura) e `items[]` (`description`, `quantity` > 0, `unitPrice` > 0)
+- Campos: `title`, `description`, `category`, `costCenterId` (padrão = o do solicitante), `neededBy` (data opcional, que precisa ser futura) e `items[]` (`description`, `quantity` inteiro > 0, `unitPrice` > 0)
 - `category` é um enum: `EQUIPMENT | SERVICES | SUPPLIES | TRAVEL | SOFTWARE | OTHER`
 - O **valor total é calculado no back-end**: cada item = `quantity × unitPrice`, arredondado para 2 casas (HALF_UP); o total é a soma dos itens. Moeda: BRL. O valor enviado pelo cliente é ignorado
 - A solicitação nasce como `DRAFT`. Ela só pode ser editada em `DRAFT` ou `CHANGES_REQUESTED`, e só pelo dono
-- Listagem com paginação, ordenação e filtros: `status`, `category`, `costCenterId`, `minAmount`, `maxAmount`, `createdFrom`, `createdTo`, `q` (busca no título)
-- Visibilidade: o `SOLICITANTE` vê as próprias solicitações; o `APROVADOR` vê as do seu centro de custo; o `ADMIN` vê todas
+- Listagem com paginação, ordenação e filtros: `status`, `category`, `costCenterId`, `createdFrom`, `createdTo` (outros filtros são diferenciais)
+- Visibilidade: o `SOLICITANTE` vê as próprias solicitações; o `APROVADOR` vê as do seu centro de custo; o `ADMIN` vê todas. **Rascunhos (`DRAFT`) só são visíveis para o dono**
 
 ### 2.3 Cadeia de aprovação
 
@@ -91,8 +92,11 @@ Regras adicionais:
    - `ADMIN`: somente `ADMIN`
 3. **Segregação de funções:** ninguém aprova a própria solicitação, e a **mesma pessoa não aprova duas etapas** da mesma versão.
 4. **Comentários:** opcional ao aprovar; **obrigatório** (mínimo de 10 caracteres) ao rejeitar ou devolver para ajuste.
-5. **Orçamento:** a **aprovação da última etapa** consome o valor do orçamento do centro de custo no **mês de competência**, que é o mês da submissão (fuso `America/Sao_Paulo`). Se o saldo for insuficiente, a aprovação falha com `422 BUDGET_EXCEEDED` e a solicitação continua pendente. Duas aprovações finais simultâneas **nunca** podem consumir mais do que o saldo.
+5. **Orçamento:** a **aprovação da última etapa** consome o valor do orçamento do centro de custo no **mês de competência**, que é o mês da submissão **da versão atual** (fuso `America/Sao_Paulo`; um reenvio em outro mês muda a competência). Mês sem orçamento cadastrado tem saldo zero. Se o saldo for insuficiente, a aprovação falha com `422 BUDGET_EXCEEDED` e a solicitação continua pendente. **O saldo nunca pode ficar negativo**, nem com aprovações simultâneas:
+   - duas aprovações da **mesma etapa da mesma solicitação** ao mesmo tempo → uma sucede, a outra recebe `409`;
+   - aprovações finais de **solicitações diferentes** disputando o mesmo saldo → as que cabem no saldo são aprovadas, a que não cabe recebe `422 BUDGET_EXCEEDED`.
 6. **Devolução para ajuste:** gera `CHANGES_REQUESTED`. O dono edita e reenvia. O reenvio cria uma **nova versão** (v2, v3…), e a versão anterior fica **imutável** e consultável. A cadeia é **recalculada do zero**, e as aprovações da versão anterior não contam.
+7. **Sem aprovador elegível:** se ninguém puder aprovar a etapa atual (ex.: a etapa é `ADMIN` e o único admin é o dono da solicitação), ela continua pendente na caixa de aprovação. Isso não é erro. Por isso o seed tem dois `ADMIN` (5.4).
 
 ### 2.4 Caixa de aprovação
 
@@ -106,8 +110,7 @@ Regras adicionais:
 ### 2.6 Dashboard
 
 - Totais por status, no escopo do papel (o solicitante vê os próprios; o aprovador, os do centro de custo; o admin, tudo)
-- Orçamento do mês por centro de custo: **orçado, consumido e disponível**
-- **Tempo médio de aprovação** (da submissão até a decisão final) nos últimos 30 dias
+- Orçamento do **mês corrente** por centro de custo: **orçado, consumido e disponível**
 
 ### 2.7 Interface web (front-end)
 
@@ -120,6 +123,7 @@ Regras adicionais:
 - **Ações contextuais guiadas pela API:** a resposta de detalhe traz `allowedActions` (ex.: `["APPROVE","REJECT","REQUEST_CHANGES"]`). **O front não reimplementa as regras de permissão**, só renderiza o que a API permite
 - Modal de comentário obrigatório para rejeitar e para devolver
 - Mensagens claras para `409` (alguém agiu antes de você) e `422` (regra de negócio), além dos estados de carregando, vazio e erro
+- **Não são obrigatórias** telas de administração (usuários, centros de custo e orçamentos): esses recursos podem ser operados pela API e pelo seed
 
 ---
 
@@ -134,11 +138,11 @@ Regras adicionais:
 | `GET` | `/auth/me` | Usuário logado |
 | `GET` / `POST` | `/users` | Lista e cria usuários (`ADMIN`) |
 | `PATCH` | `/users/:id` | Edita papel, nível ou centro de custo (`ADMIN`) |
-| `GET` | `/cost-centers` | Lista centros de custo |
-| `GET` / `PUT` | `/cost-centers/:id/budgets/:yyyy-mm` | Consulta / define orçamento do mês (`PUT` só `ADMIN`) |
+| `GET` / `POST` | `/cost-centers` | Lista / cria centros de custo (`POST` só `ADMIN`) |
+| `GET` / `PUT` | `/cost-centers/:id/budgets/:yyyy-mm` | Consulta / define orçamento do mês (`PUT` só `ADMIN`; valor abaixo do já consumido → `422 BUDGET_BELOW_CONSUMED`) |
 | `GET` | `/requests` | Lista (paginada, filtrável, ordenável) |
 | `POST` | `/requests` | Cria em `DRAFT` (**aceita `Idempotency-Key`**) |
-| `GET` | `/requests/:id` | Detalhe da versão atual + etapas + `allowedActions` + `version` |
+| `GET` | `/requests/:id` | Detalhe da versão atual + etapas + `allowedActions` + `lockVersion` |
 | `PUT` | `/requests/:id` | Edita (`DRAFT` / `CHANGES_REQUESTED`) |
 | `GET` | `/requests/:id/versions` | Lista de versões; `GET /requests/:id/versions/:n` para uma versão específica |
 | `POST` | `/requests/:id/submit` | Submete ou reenvia |
@@ -160,12 +164,12 @@ A documentação **OpenAPI** deve ficar disponível na aplicação (ex.: `/docs`
 - **`401`**: sem token ou token inválido/expirado
 - **`403`**: o papel não permite a ação (ex.: `SOLICITANTE` tentando aprovar)
 - **`404`**: recurso inexistente **ou fora da visibilidade do usuário**. Decida entre `403` e `404` nesse caso e justifique em ADR
-- **`409`**: conflito de concorrência (`version` desatualizada) ou `Idempotency-Key` reutilizada com payload diferente
-- **`422`**: regra de negócio violada, com `code` específico, por exemplo `INVALID_TRANSITION`, `SELF_APPROVAL_FORBIDDEN`, `APPROVER_NOT_ELIGIBLE`, `DUPLICATE_APPROVER`, `BUDGET_EXCEEDED`, `COMMENT_REQUIRED`
+- **`409`**: conflito de concorrência (`lockVersion` desatualizado) ou `Idempotency-Key` reutilizada com payload diferente
+- **`422`**: regra de negócio violada, com `code` específico, por exemplo `INVALID_TRANSITION`, `SELF_APPROVAL_FORBIDDEN`, `APPROVER_NOT_ELIGIBLE`, `DUPLICATE_APPROVER`, `BUDGET_EXCEEDED`, `BUDGET_BELOW_CONSUMED`, `COMMENT_REQUIRED`
 - **Paginação:** `?page=0&size=20&sort=createdAt,desc` → `{ "data": [...], "page": 0, "size": 20, "totalElements": 135, "totalPages": 7 }`
 - **Datas** em ISO 8601 com fuso; **valores monetários** como string decimal (`"15000.00"`) ou inteiro em centavos. Escolha um, documente e use em todo lugar
-- **Concorrência:** toda ação de transição (`submit`, `approve`, `reject`, `request-changes`, `cancel`) exige a `version` atual (no corpo, ou via `If-Match`/`ETag`). Versão divergente → `409`
-- **Idempotência:** `POST /requests` com o mesmo `Idempotency-Key` e o mesmo payload devolve **a mesma resposta** sem criar outra solicitação (validade mínima: 24 h)
+- **Concorrência:** toda ação de transição (`submit`, `approve`, `reject`, `request-changes`, `cancel`) exige o `lockVersion` atual (no corpo, ou via `If-Match`/`ETag`). Valor divergente → `409`. **Não confunda** o `lockVersion` (controle de concorrência, muda a cada alteração) com a **versão** da solicitação (v1, v2…, muda só no reenvio, seção 2.3)
+- **Idempotência:** `POST /requests` com o mesmo `Idempotency-Key`, do mesmo usuário e com o mesmo payload, devolve **a mesma resposta** sem criar outra solicitação (validade mínima: 24 h)
 
 ### 3.3 Exemplos
 
@@ -191,7 +195,7 @@ POST /requests/42/approve
 Authorization: Bearer <token>
 Content-Type: application/json
 
-{ "version": 3, "comment": "De acordo, dentro do planejado do trimestre." }
+{ "lockVersion": 3, "comment": "De acordo, dentro do planejado do trimestre." }
 ```
 
 ```json
@@ -258,7 +262,7 @@ stateDiagram-v2
 1. Autenticação → `401`
 2. Existência/visibilidade do recurso → `404` (ou `403`, conforme seu ADR)
 3. Papel permite o tipo de ação → `403`
-4. Concorrência (`version`) → `409`
+4. Concorrência (`lockVersion`) → `409`
 5. Regra de negócio (estado, nível, centro de custo, segregação, comentário, orçamento) → `422` com `code` e mensagem que **explica o motivo**
 
 > _"Ação inválida"_ é insuficiente. Exemplo de mensagem esperada: _"Não é possível aprovar: você já aprovou a etapa NIVEL_1 desta versão (segregação de funções)."_
@@ -283,13 +287,13 @@ stateDiagram-v2
 - **Unitários** da máquina de estados e da montagem da cadeia, cobrindo **todas** as transições da tabela 4.2, inclusive as inválidas (testes parametrizados/table-driven são bem-vindos)
 - **Integração com banco real** (Testcontainers ou o banco do compose), cobrindo no mínimo:
   - fluxo completo de 3 etapas até `APPROVED`, com consumo de orçamento
-  - segregação de funções (autoaprovação e mesmo aprovador em duas etapas)
+  - segregação de funções (aprovador tentando aprovar a própria solicitação e mesmo aprovador em duas etapas)
   - `BUDGET_EXCEEDED`
   - devolução → edição → reenvio gerando v2, com a v1 preservada
   - idempotência do `POST /requests`
 - **Concorrência** (teste automatizado):
   - duas aprovações simultâneas da mesma etapa → **exatamente uma** sucede; a outra recebe `409`
-  - duas aprovações finais simultâneas disputando o mesmo saldo → o orçamento **nunca** fica negativo
+  - aprovações finais simultâneas de **solicitações diferentes** disputando o mesmo saldo → o orçamento **nunca** fica negativo (as que não cabem recebem `422 BUDGET_EXCEEDED`)
 - **Front-end:** pelo menos 3 testes significativos (ex.: formulário com itens, ações renderizadas a partir de `allowedActions`, tratamento de `409`/`422`)
 - Cada lado roda os testes com **um único comando** documentado
 
@@ -297,13 +301,14 @@ stateDiagram-v2
 
 - `docker compose up --build` na raiz sobe **banco + back-end + front-end**, roda as migrations e o seed **sem nenhum passo manual**
 - `.env.example` com todas as variáveis necessárias
-- **Pipeline de CI no seu fork** (ex.: GitHub Actions) com build, lint e testes de back-end e front-end, **verde no commit final**
+- **Pipeline de CI no seu fork** (ex.: GitHub Actions) com build, lint e testes de back-end e front-end, **verde no commit final**. Em forks, o GitHub Actions vem **desligado**: habilite na aba *Actions* do seu fork
+- Lint e formatação rodam no CI ou como script do projeto. **Não use ferramentas que alteram os hooks do Git** (husky, lefthook, pre-commit e similares), porque elas desativam os hooks do desafio (seção 10)
 
 ### 5.4 Seed obrigatório (dados fictícios)
 
 - 2 centros de custo, um deles com orçamento do mês **quase esgotado** (para demonstrar `BUDGET_EXCEEDED`)
 - Por centro de custo: 1 `SOLICITANTE`, 1 `APROVADOR` `NIVEL_1` e 1 `APROVADOR` `NIVEL_2`
-- 1 `ADMIN`
+- 2 `ADMIN` (para que nenhum fluxo trave pela segregação de funções, regra 7 da seção 2.3)
 - Solicitações de exemplo em estados variados
 - As credenciais fictícias ficam documentadas no `SOLUTION.md`
 
@@ -327,6 +332,9 @@ Na raiz do seu fork (o `README.md` da raiz é o enunciado e **não pode ser alte
 
 Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que quantidade.
 
+- **Tempo médio de aprovação** no dashboard (da submissão até a decisão final, nos últimos 30 dias)
+- Filtros extras na listagem: `minAmount`, `maxAmount`, `q` (busca no título)
+- Telas de administração no front (usuários, centros de custo, orçamentos)
 - Refresh token com rotação e revogação
 - **Transactional outbox** publicando eventos de mudança de estado (ex.: notificação por e-mail fake ou log)
 - Job de **SLA**: solicitações pendentes há mais de 3 dias úteis geram lembrete ou escalonamento
@@ -374,10 +382,21 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 
 1. **Faça um fork** deste repositório para a sua conta pessoal do GitHub, **desmarcando** *"Copy the `main` branch only"*, e mantenha-o **público**. **Não** abra Pull Request para o repositório original
 2. Clone o fork e trabalhe na branch **`teste-pleno`** (`git switch teste-pleno`). **É ela que será avaliada**
-3. **Antes de qualquer outra coisa**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA
-4. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz
-5. Grave o **vídeo de apresentação** seguindo o roteiro obrigatório da [seção 8.1](#81-vídeo-de-apresentação-obrigatório) e coloque o link no `SOLUTION.md`
-6. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado
+3. **Antes do primeiro commit**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA. O setup vale para cada clone: se clonar de novo ou trocar de máquina, rode outra vez
+4. Habilite o **GitHub Actions** na aba *Actions* do fork (vem desligado em forks)
+5. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz. Arquivos de ferramenta na raiz (ex.: `package.json` de workspace, `Makefile`, `.editorconfig`, `.dockerignore`) também são permitidos
+6. **Faça todos os commits pelo terminal**, depois do setup. Commits feitos pelo site do GitHub não passam pelos hooks e também precisam da declaração de IA (seção 9.2)
+7. Grave o **vídeo de apresentação** seguindo o roteiro obrigatório da [seção 8.1](#81-vídeo-de-apresentação-obrigatório) e coloque o link no `SOLUTION.md`
+8. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado
+
+**Fez o fork só com a `main`?** Recupere a branch do teste no seu clone:
+
+```bash
+git remote add upstream https://github.com/kingspanisoeste/developer-challenge.git
+git fetch upstream teste-pleno
+git switch -c teste-pleno upstream/teste-pleno
+git push -u origin teste-pleno
+```
 
 > **Importante:**
 > - Projetos que não sobem com as instruções do `SOLUTION.md` **não são avaliados** além da auditoria.
@@ -393,7 +412,7 @@ O vídeo é a sua chance de mostrar que **conhece a solução por dentro**: como
 - **Duração:** 15 a 25 minutos. Pode ser editado entre os blocos, desde que cada bloco seja contínuo
 - **Tela + a sua voz**, em português. Câmera é opcional
 - Explique **com as suas palavras**. Um roteiro de tópicos é bem-vindo; ler um texto pronto palavra por palavra ou usar narração sintética (voz gerada) **não** é aceito
-- Grave sobre o **commit final** da branch `teste-pleno` e diga o **hash do commit** no início. Se fizer commits depois da gravação, liste no `SOLUTION.md` o que mudou
+- No início, diga o **hash do commit do código que está gravando**. Um commit depois da gravação que só adiciona o link do vídeo é esperado. Se mudar código depois de gravar, liste no `SOLUTION.md` o que mudou
 - Link não listado (YouTube, Loom ou Google Drive com acesso por link)
 
 **Roteiro obrigatório** (nesta ordem; os tempos são referência)
@@ -401,8 +420,8 @@ O vídeo é a sua chance de mostrar que **conhece a solução por dentro**: como
 | # | Bloco | O que precisa aparecer |
 |---|---|---|
 | 1 | **Arquitetura** (~3 min) | Um diagrama seu (pode ser à mão ou em qualquer ferramenta) com os componentes, as camadas e **onde ficam as regras de domínio**. Como o front, a API, o domínio e o banco se comunicam |
-| 2 | **Fluxo completo ao vivo** (~8 min) | Com o sistema rodando pelo `docker compose`: login como solicitante → criar uma solicitação **acima de R$ 10.000** com itens → submeter → aprovar como `NIVEL_1` → `NIVEL_2` → `ADMIN` → orçamento consumido no dashboard. Depois: devolução para ajuste → edição → reenvio gerando a **v2**, mostrando a v1 preservada. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, quais regras são verificadas, o que é gravado no banco e qual evento entra no histórico. Mostre o banco ou os logs pelo menos uma vez |
-| 3 | **Casos de erro ao vivo** (~3 min) | Autoaprovação, mesmo aprovador em duas etapas, `BUDGET_EXCEEDED`, ação em estado final (`422`) e **conflito de concorrência (`409`)** reproduzido com duas abas ou duas chamadas. Para cada um, diga **em que ponto do código** a regra barra a ação |
+| 2 | **Fluxo completo ao vivo** (~7 min) | Com o sistema rodando pelo `docker compose`: login como solicitante → criar uma solicitação **acima de R$ 10.000** com itens → submeter → aprovar como `NIVEL_1` → `NIVEL_2` → `ADMIN` → orçamento consumido no dashboard. Depois, com **uma segunda solicitação**: devolução para ajuste → edição → reenvio gerando a **v2**, mostrando a v1 preservada. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, quais regras são verificadas, o que é gravado no banco e qual evento entra no histórico. Mostre o banco ou os logs pelo menos uma vez |
+| 3 | **Casos de erro ao vivo** (~3 min) | Aprovador tentando aprovar a própria solicitação, mesmo aprovador em duas etapas, `BUDGET_EXCEEDED`, ação em estado final (`422`) e **conflito de concorrência (`409`)** reproduzido com duas abas ou duas chamadas. Para cada um, diga **em que ponto do código** a regra barra a ação |
 | 4 | **Percurso no código** (~5 min) | Siga uma requisição de **aprovação** da entrada da API até o banco: validação, autorização, máquina de estados, montagem da cadeia, transação/lock, consumo do orçamento e gravação do histórico. Mostre onde está a regra de `SOFTWARE` e explique **como você adicionaria uma regra nova** de aprovação |
 | 5 | **Decisões e trade-offs** (~4 min) | As decisões dos seus ADRs (concorrência, versões e histórico, `403` × `404`, idempotência): **o que você escolheu, quais alternativas considerou, por que descartou** e o que faria diferente com mais tempo |
 | 6 | **Testes e uso de IA** (~3 min) | Rode a suíte de testes. Abra o teste de concorrência e explique **por que ele prova** o comportamento. Conte onde usou IA, **um exemplo concreto em que a IA errou** e como você percebeu, e o que escreveu sem IA |
@@ -424,7 +443,9 @@ Depois do `./setup.sh`, o repositório já vem configurado para registrar **sozi
 | **Claude Code** | Hooks em `.claude/settings.json` (automático) |
 | **Cursor** | Hooks em `.cursor/hooks.json` (automático) |
 | **Codex, GitHub Copilot, Gemini, Windsurf e outros agentes** | O agente lê `AGENTS.md` e executa os comandos de registro no início e no fim de cada tarefa |
-| **IA fora do editor** (ChatGPT, Claude.ai, Gemini no navegador…) | **Você** executa os comandos antes e depois de colar o código (ver abaixo) |
+| **IA fora do editor** (ChatGPT, Claude.ai, Gemini no navegador…) **gerando código que você cola** | **Você** executa os comandos antes e depois de colar o código (ver abaixo) |
+| **Autocomplete no editor** (Copilot, Cursor Tab, Codeium…) | Não gera registro por turno. Declare `AI-Assisted: yes` nos commits em que usou e conte no `AI_USAGE.md` |
+| **Chat só para tirar dúvida**, sem colar código | Não precisa de registro nem muda a declaração do commit. Conte no `AI_USAGE.md` |
 
 Cada registro traz a data, a ferramenta, o prompt (resumido), os arquivos alterados e as linhas adicionadas/removidas. Para registrar manualmente:
 
@@ -446,6 +467,10 @@ AI-Agent: ClaudeCode    # opcional, recomendado quando yes
 
 O hook `commit-msg` recusa commits sem o trailer, e também recusa `AI-Assisted: no` quando há registro de IA novo no mesmo commit ou co-autoria de IA na mensagem.
 
+- **Vale para todo commit, inclusive os feitos pelo site do GitHub** (que não passam pelos hooks). Prefira o terminal. Se precisar editar pelo site, escreva o trailer na descrição do commit
+- O registro de IA ainda não commitado **entra sozinho no próximo commit**. Por isso, depois de um turno de agente, o próximo commit precisa ser `yes`. Para manter um commit só seu como `no`, commite antes o trabalho do agente
+- Esqueceu o trailer no último commit e ainda não fez push? Corrija com `git commit --amend`
+
 ### 9.3 `AI_USAGE.md` (escrito por você, não pela IA)
 
 Responda com as suas palavras, em até 1 página:
@@ -459,7 +484,7 @@ Responda com as suas palavras, em até 1 página:
 
 - **Omitir** uso de IA, declarando `AI-Assisted: no` em um commit cujo código foi gerado por IA
 - **Editar ou apagar** entradas do `.agents/changelog/diff.md` (ele é **append-only**)
-- **Desativar** os hooks ou contorná-los (`--no-verify`, alterar `core.hooksPath`, `disableAllHooks` etc.)
+- **Desativar** os hooks do repositório ou do agente, ou contorná-los (ex.: `--no-verify`, alterar `core.hooksPath`)
 - Não conseguir explicar, na conversa técnica, um trecho que você entregou
 
 > Usar muita IA **não** reduz a nota. Esconder o uso desclassifica.
@@ -475,6 +500,8 @@ Responda com as suas palavras, em até 1 página:
 ```
 
 O script ativa os hooks Git (`pre-commit`, `commit-msg`, `pre-push`) e o registro automático de IA. No Windows, execute pelo **Git Bash**.
+
+> **Atenção:** ferramentas como **husky** e **lefthook** trocam o `core.hooksPath` e desligam os hooks do desafio, o que é eliminatório. Rode lint e formatação no CI ou como script do projeto.
 
 ### 10.2 Arquivos protegidos
 

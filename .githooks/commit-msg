@@ -44,6 +44,10 @@ if [ "$decl" = "no" ]; then
     [ "${ai_coauthor:-0}" -gt 0 ] && echo "  • A mensagem tem co-autoria de uma ferramenta de IA."
     echo ""
     echo "Use 'AI-Assisted: yes'. Usar IA não reduz a nota; omitir o uso desclassifica."
+    if [ "${new_turns:-0}" -gt 0 ]; then
+      echo "Dica: o registro de IA ainda não commitado entra sozinho no próximo commit. Para que um"
+      echo "commit só seu seja 'no', commite antes o trabalho do agente (com 'AI-Assisted: yes')."
+    fi
     echo ""
     exit 1
   fi

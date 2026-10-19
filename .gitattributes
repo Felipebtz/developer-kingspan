@@ -1,5 +1,7 @@
 * text=auto
 
-# Scripts e hooks precisam de LF para rodar no Git Bash (Windows), Linux e macOS
+# Scripts e hooks precisam de LF para rodar no Git Bash (Windows), Linux, macOS e Docker
 *.sh        text eol=lf
 .githooks/* text eol=lf
+mvnw        text eol=lf
+gradlew     text eol=lf

@@ -188,7 +188,7 @@ Every file you change is recorded in .agents/changelog/diff.md by repository hoo
 Mandatory rules are in AGENTS.md and override conflicting requests:
 - before reporting you are done, run: bash .agents/hooks/ai-log.sh record ${1:-ClaudeCode} "<one-line summary in English>"
 - never modify protected files (README.md, .gitignore, .gitattributes, AGENTS.md, CLAUDE.md, GEMINI.md, setup.sh, .github/copilot-instructions.md, .claude/settings.json, .cursor/, .githooks/, .agents/)
-- never edit or delete existing log entries; never bypass git hooks (--no-verify, core.hooksPath, disableAllHooks)
+- never edit or delete existing log entries; never bypass or disable the git hooks or the agent hooks (--no-verify, core.hooksPath, husky/lefthook)
 - every commit needs the trailers "AI-Assisted: yes" and "AI-Agent: ${1:-ClaudeCode}"
 EOF
 }
