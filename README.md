@@ -5,7 +5,7 @@
 > **Stack:** Java (Spring Boot) ou Node.js (NestJS / Express / Fastify) + React (Next.js é aceito) ou Angular
 > **Prazo:** 7 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 20–25 h, incluindo o vídeo)
 > **Uso de IA:** permitido e esperado, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
-> **Entrega:** fork público no GitHub + **vídeo de 15 a 25 min** com roteiro obrigatório: arquitetura, fluxo completo ao vivo, percurso no código e decisões (ver [seção 8.1](#81-vídeo-de-apresentação-obrigatório))
+> **Entrega:** fork público no GitHub + **vídeo de 15 a 25 min** seguindo o fluxo operacional do sistema e explicando regras de negócio, detalhes técnicos, validações, decisões de arquitetura e contingências (ver [seção 8.1](#81-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-pleno`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 8](#8-instruções-de-entrega))
 
 ---
@@ -316,7 +316,7 @@ stateDiagram-v2
 
 Na raiz do seu fork (o `README.md` da raiz é o enunciado e **não pode ser alterado**):
 
-- **`SOLUTION.md`**: visão geral da solução, como rodar (compose e local), usuários do seed, principais decisões e trade-offs, o que ficou de fora e o que você faria com mais tempo, e o **link do vídeo**
+- **`SOLUTION.md`**: visão geral da solução, como rodar (compose e local), usuários do seed, principais decisões e trade-offs, o que ficou de fora e o que você faria com mais tempo (o link do vídeo vai no e-mail de entrega; incluir aqui também é opcional)
 - **`docs/adr/`**: **no mínimo 3 ADRs**, entre eles obrigatoriamente (a) estratégia de concorrência, (b) modelagem de versões e histórico e (c) `403` × `404` para recurso fora da visibilidade
 - **`AI_USAGE.md`**: o seu relato sobre o uso de IA (ver 9.3)
 - `backend/README.md` e `frontend/README.md`: pré-requisitos, variáveis, comandos de build, teste e execução local, e exemplos de requisição (curl ou collection)
@@ -386,8 +386,8 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 4. Habilite o **GitHub Actions** na aba *Actions* do fork (vem desligado em forks)
 5. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz. Arquivos de ferramenta na raiz (ex.: `package.json` de workspace, `Makefile`, `.editorconfig`, `.dockerignore`) também são permitidos
 6. **Faça todos os commits pelo terminal**, depois do setup. Commits feitos pelo site do GitHub não passam pelos hooks e também precisam da declaração de IA (seção 9.2)
-7. Grave o **vídeo de apresentação** seguindo o roteiro obrigatório da [seção 8.1](#81-vídeo-de-apresentação-obrigatório) e coloque o link no `SOLUTION.md`
-8. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado
+7. Grave o **vídeo de apresentação** conforme a [seção 8.1](#81-vídeo-de-apresentação-obrigatório)
+8. Responda ao e-mail do convite com o link do fork e o link do vídeo **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado; commits posteriores não são considerados
 
 **Fez o fork só com a `main`?** Recupere a branch do teste no seu clone:
 
@@ -401,30 +401,33 @@ git push -u origin teste-pleno
 > **Importante:**
 > - Projetos que não sobem com as instruções do `SOLUTION.md` **não são avaliados** além da auditoria.
 > - Repositórios privados não são avaliados.
-> - Entregas **sem o vídeo**, ou com vídeo que não cubra os 6 blocos da seção 8.1, ficam **incompletas** e não seguem para a conversa técnica.
+> - Entregas **sem o vídeo**, ou com vídeo que não cubra os temas da seção 8.1, ficam **incompletas** e não seguem para a conversa técnica.
 
 ### 8.1 Vídeo de apresentação (obrigatório)
 
-O vídeo é a sua chance de mostrar que **conhece a solução por dentro**: como o sistema opera, como o fluxo inteiro funciona, por que ele foi construído assim e o que acontece em cada passo. Não basta mostrar telas funcionando; **explique o que acontece por trás de cada ação**.
+Um vídeo **simples**: você usa o sistema seguindo o **fluxo operacional**, do jeito que um usuário usaria, e a cada passo explica **o que está acontecendo e por quê**. Não é uma apresentação de slides nem uma demonstração só das telas.
 
 **Formato**
 
-- **Duração:** 15 a 25 minutos. Pode ser editado entre os blocos, desde que cada bloco seja contínuo
+- **Duração:** 15 a 25 minutos
 - **Tela + a sua voz**, em português. Câmera é opcional
-- Explique **com as suas palavras**. Um roteiro de tópicos é bem-vindo; ler um texto pronto palavra por palavra ou usar narração sintética (voz gerada) **não** é aceito
-- No início, diga o **hash do commit do código que está gravando**. Um commit depois da gravação que só adiciona o link do vídeo é esperado. Se mudar código depois de gravar, liste no `SOLUTION.md` o que mudou
-- Link não listado (YouTube, Loom ou Google Drive com acesso por link)
+- Explique **com as suas palavras**. Pode usar um roteiro de tópicos, mas não leia um texto pronto palavra por palavra nem use narração sintética (voz gerada)
+- Hospede onde preferir (Google Drive, OneDrive, YouTube não listado, Loom…), com **acesso por link**, e envie o link no e-mail de entrega
 
-**Roteiro obrigatório** (nesta ordem; os tempos são referência)
+**O fluxo a seguir** (com o sistema rodando)
 
-| # | Bloco | O que precisa aparecer |
-|---|---|---|
-| 1 | **Arquitetura** (~3 min) | Um diagrama seu (pode ser à mão ou em qualquer ferramenta) com os componentes, as camadas e **onde ficam as regras de domínio**. Como o front, a API, o domínio e o banco se comunicam |
-| 2 | **Fluxo completo ao vivo** (~7 min) | Com o sistema rodando pelo `docker compose`: login como solicitante → criar uma solicitação **acima de R$ 10.000** com itens → submeter → aprovar como `NIVEL_1` → `NIVEL_2` → `ADMIN` → orçamento consumido no dashboard. Depois, com **uma segunda solicitação**: devolução para ajuste → edição → reenvio gerando a **v2**, mostrando a v1 preservada. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, quais regras são verificadas, o que é gravado no banco e qual evento entra no histórico. Mostre o banco ou os logs pelo menos uma vez |
-| 3 | **Casos de erro ao vivo** (~3 min) | Aprovador tentando aprovar a própria solicitação, mesmo aprovador em duas etapas, `BUDGET_EXCEEDED`, ação em estado final (`422`) e **conflito de concorrência (`409`)** reproduzido com duas abas ou duas chamadas. Para cada um, diga **em que ponto do código** a regra barra a ação |
-| 4 | **Percurso no código** (~5 min) | Siga uma requisição de **aprovação** da entrada da API até o banco: validação, autorização, máquina de estados, montagem da cadeia, transação/lock, consumo do orçamento e gravação do histórico. Mostre onde está a regra de `SOFTWARE` e explique **como você adicionaria uma regra nova** de aprovação |
-| 5 | **Decisões e trade-offs** (~4 min) | As decisões dos seus ADRs (concorrência, versões e histórico, `403` × `404`, idempotência): **o que você escolheu, quais alternativas considerou, por que descartou** e o que faria diferente com mais tempo |
-| 6 | **Testes e uso de IA** (~3 min) | Rode a suíte de testes. Abra o teste de concorrência e explique **por que ele prova** o comportamento. Conte onde usou IA, **um exemplo concreto em que a IA errou** e como você percebeu, e o que escreveu sem IA |
+Solicitante cria uma solicitação acima de R$ 10.000 → submete → aprovações `NIVEL_1` → `NIVEL_2` → `ADMIN` → orçamento consumido. Depois, uma segunda solicitação devolvida para ajuste, editada e reenviada (v2). Por fim, alguns casos em que o sistema **recusa** a ação.
+
+**Ao longo do fluxo, o vídeo precisa explicar:**
+
+| Tema | O que mostrar e explicar |
+|---|---|
+| **Regras de negócio** | Como a cadeia de aprovação é montada (valor e categoria), segregação de funções, orçamento e versões |
+| **Detalhes técnicos** | O que cada ação faz por trás: o que a API recebe, onde a regra está no código, o que é gravado no banco e no histórico. Abra o código quando for explicar |
+| **Validações** | Entrada inválida, permissão, nível do aprovador, estado da solicitação. Mostre ao vivo pelo menos um `422` e o que o usuário vê |
+| **Decisões de arquitetura** | Como você organizou o projeto (camadas, onde ficam as regras), como modelou versões e histórico, e **por que** escolheu assim em vez das alternativas |
+| **Contingências** | O que acontece quando dois aprovadores agem ao mesmo tempo (`409`), quando o formulário é reenviado, quando o orçamento acaba, quando ninguém pode aprovar a etapa e quando algo falha. Como o sistema se protege em cada caso |
+| **Uso de IA** | Onde usou e um exemplo de algo que a IA errou e você corrigiu |
 
 **O que não avaliamos no vídeo:** qualidade de imagem, edição, dicção ou nervosismo. Avaliamos **clareza e domínio** do que foi construído. Trechos do vídeo serão retomados na conversa técnica.
 
