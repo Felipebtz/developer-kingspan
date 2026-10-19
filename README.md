@@ -6,6 +6,7 @@
 > **Prazo:** 5 dias corridos a partir do recebimento (esforço estimado: 16–20 h)
 > **Uso de IA:** permitido e esperado, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
 > **Entrega:** fork público no GitHub + vídeo curto (até 10 min) explicando suas decisões
+> **Branch deste enunciado:** `teste-pleno`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 8](#8-instruções-de-entrega))
 
 ---
 
@@ -370,11 +371,12 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 
 ## 8. Instruções de Entrega
 
-1. **Faça um fork** deste repositório para a sua conta pessoal do GitHub e mantenha-o **público**. **Não** abra Pull Request para o repositório original
-2. **Antes de qualquer outra coisa**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA
-3. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz
-4. Grave um **vídeo de até 10 minutos** (link não listado do YouTube, Loom ou Drive) mostrando a solução funcionando e explicando as 3 decisões técnicas mais importantes. Coloque o link no `SOLUTION.md`
-5. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit antes do prazo é o avaliado
+1. **Faça um fork** deste repositório para a sua conta pessoal do GitHub, **desmarcando** *"Copy the `main` branch only"*, e mantenha-o **público**. **Não** abra Pull Request para o repositório original
+2. Clone o fork e trabalhe na branch **`teste-pleno`** (`git switch teste-pleno`). **É ela que será avaliada**
+3. **Antes de qualquer outra coisa**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA
+4. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz
+5. Grave um **vídeo de até 10 minutos** (link não listado do YouTube, Loom ou Drive) mostrando a solução funcionando e explicando as 3 decisões técnicas mais importantes. Coloque o link no `SOLUTION.md`
+6. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado
 
 > **Importante:**
 > - Projetos que não sobem com as instruções do `SOLUTION.md` **não são avaliados** além da auditoria.
