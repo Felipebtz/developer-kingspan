@@ -1,1 +1,27 @@
-node_modules
+# Dependências e builds
+node_modules/
+dist/
+build/
+out/
+target/
+.next/
+.angular/
+.gradle/
+coverage/
+*.log
+
+# Ambiente (nunca commitar segredos)
+.env
+.env.*
+!.env.example
+
+# IDEs e sistema operacional
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Configurações pessoais de agentes de IA
+.claude/settings.local.json

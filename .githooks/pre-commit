@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# pre-commit — Proteção de arquivos e do registro de IA
+#
+# 1. Fecha um turno de agente que ficou aberto (o agente não executou "record")
+#    e inclui o registro de IA no commit.
+# 2. Bloqueia o commit se ele altera arquivos protegidos.
+# 3. Bloqueia o commit se ele remove ou altera linhas existentes do registro de IA
+#    (.agents/changelog/diff.md é append-only).
+#
+
+RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+LOG_REL=".agents/changelog/diff.md"
+ROOT="$(git rev-parse --show-toplevel)"
+
+is_protected() {
+  case "$1" in
+    "$LOG_REL") return 1 ;;
+    README.md|.gitignore|.gitattributes|AGENTS.md|CLAUDE.md|GEMINI.md|setup.sh) return 0 ;;
+    .github/copilot-instructions.md|.claude/settings.json) return 0 ;;
+    .cursor/*|.githooks/*|.agents/*) return 0 ;;
+  esac
+  return 1
+}
+
+# 1. Turno aberto + registro de IA no commit
+bash "$ROOT/.agents/hooks/ai-log.sh" close-open </dev/null
+if ! git diff --quiet -- "$LOG_REL" 2>/dev/null; then
+  git add -- "$LOG_REL"
+fi
+
+# 2. Arquivos protegidos
+blocked=()
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  is_protected "$file" && blocked+=("$file")
+done < <(git -c core.quotepath=off diff --cached --name-only --no-renames)
+
+if [ ${#blocked[@]} -gt 0 ]; then
+  echo ""
+  echo -e "${RED}COMMIT BLOQUEADO — arquivo protegido alterado${NC}"
+  for f in "${blocked[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
+  echo ""
+  echo -e "${YELLOW}Desfaça com:${NC} git restore --staged --worktree -- <arquivo>"
+  echo "Leia a seção '⚠️ 10. Regras do Repositório' no README.md."
+  echo ""
+  exit 1
+fi
+
+# 3. Registro de IA append-only
+removed="$(git diff --cached --numstat -- "$LOG_REL" | awk '{print $2}')"
+if [ -n "$removed" ] && [ "$removed" != "0" ]; then
+  echo ""
+  echo -e "${RED}COMMIT BLOQUEADO — o registro de IA ($LOG_REL) é append-only${NC}"
+  echo "Este commit remove ou altera $removed linha(s) existente(s) do registro."
+  echo -e "${YELLOW}Desfaça com:${NC} git restore --staged --worktree -- $LOG_REL"
+  echo ""
+  exit 1
+fi
+
+exit 0

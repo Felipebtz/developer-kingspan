@@ -1,98 +1,90 @@
 #!/usr/bin/env bash
 #
-# pre-push hook — Proteção de arquivos do repositório
+# pre-push — Última barreira antes de enviar commits ao fork
 #
-# Bloqueia o push caso algum commit a ser enviado contenha modificações
-# em arquivos protegidos do repositório do desafio.
+# Para cada commit novo (que ainda não existe em nenhum remoto), bloqueia o push se:
+#   1. o commit altera um arquivo protegido;
+#   2. o commit remove ou altera linhas existentes do registro de IA (append-only);
+#   3. o commit (não-merge) não tem o trailer "AI-Assisted: yes|no".
 #
-# Arquivos/diretórios protegidos:
-#   - AGENTS.md
-#   - CLAUDE.md
-#   - setup.sh
-#   - .cursor/  (qualquer arquivo)
-#   - .githooks/ (qualquer arquivo)
-#   - .agents/  (qualquer arquivo exceto .agents/changelog/diff.md)
+# Cobre commits criados com --no-verify ou antes do ./setup.sh.
+# Observação: a auditoria dos avaliadores NÃO depende deste hook.
 #
 
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-PROTECTED_PATTERNS=(
-  "^AGENTS\.md$"
-  "^CLAUDE\.md$"
-  "^setup\.sh$"
-  "^\.cursor/"
-  "^\.githooks/"
-)
-
-# .agents/ é protegido exceto o changelog de IA
-AGENTS_DIR_PATTERN="^\.agents/"
-AGENTS_CHANGELOG_EXCEPTION="^\.agents/changelog/diff\.md$"
-
-remote="$1"
-url="$2"
-
+RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+LOG_REL=".agents/changelog/diff.md"
 z40="0000000000000000000000000000000000000000"
 
-blocked_files=()
+is_protected() {
+  case "$1" in
+    "$LOG_REL") return 1 ;;
+    README.md|.gitignore|.gitattributes|AGENTS.md|CLAUDE.md|GEMINI.md|setup.sh) return 0 ;;
+    .github/copilot-instructions.md|.claude/settings.json) return 0 ;;
+    .cursor/*|.githooks/*|.agents/*) return 0 ;;
+  esac
+  return 1
+}
 
-while read local_ref local_sha remote_ref remote_sha; do
-  # Push de delete — sem commits para verificar
-  if [ "$local_sha" = "$z40" ]; then
-    continue
-  fi
+protected_hits=()
+log_hits=()
+trailer_hits=()
 
-  # Determina o range de commits a verificar
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$z40" ] && continue   # push de remoção de branch
+
+  # Apenas commits que ainda não estão em nenhum remoto (exclui os commits do enunciado
+  # e atualizações vindas do repositório original).
   if [ "$remote_sha" = "$z40" ]; then
-    # Branch nova: verifica todos os commits do push
-    range="$local_sha"
-    commit_list=$(git rev-list "$range")
+    commits="$(git rev-list "$local_sha" --not --remotes)"
   else
-    range="$remote_sha..$local_sha"
-    commit_list=$(git rev-list "$range")
+    commits="$(git rev-list "$local_sha" "^$remote_sha" --not --remotes)"
   fi
 
-  for commit in $commit_list; do
-    # Lista os arquivos modificados neste commit
-    changed_files=$(git diff-tree --no-commit-id -r --name-only "$commit" 2>/dev/null)
+  for c in $commits; do
+    short="${c:0:8}"
+    parents="$(git rev-list --parents -n 1 "$c" | wc -w)"
+
+    if [ "$parents" -gt 2 ]; then
+      # Merge: só interessa o que difere de TODOS os pais (resolução de conflito / "evil merge").
+      changed="$(git -c core.quotepath=off diff-tree --no-commit-id --cc --name-only "$c")"
+    else
+      changed="$(git -c core.quotepath=off diff-tree --no-commit-id --no-renames -r --root --name-only "$c")"
+
+      removed="$(git diff-tree --no-commit-id -r --root --numstat "$c" -- "$LOG_REL" | awk '{s+=$2} END {print s+0}')"
+      [ "$removed" -gt 0 ] && log_hits+=("commit $short remove $removed linha(s) do registro")
+
+      if ! git log -1 --format=%B "$c" | grep -qiE '^AI-Assisted:[[:space:]]*(yes|no)[[:space:]]*$'; then
+        trailer_hits+=("commit $short — $(git log -1 --format=%s "$c")")
+      fi
+    fi
 
     while IFS= read -r file; do
-      [ -z "$file" ] && continue
-
-      # Verifica padrões protegidos diretos
-      for pattern in "${PROTECTED_PATTERNS[@]}"; do
-        if echo "$file" | grep -qE "$pattern"; then
-          blocked_files+=("$file (commit: ${commit:0:8})")
-          break
-        fi
-      done
-
-      # Verifica .agents/ com exceção para diff.md
-      if echo "$file" | grep -qE "$AGENTS_DIR_PATTERN"; then
-        if ! echo "$file" | grep -qE "$AGENTS_CHANGELOG_EXCEPTION"; then
-          blocked_files+=("$file (commit: ${commit:0:8})")
-        fi
-      fi
-
-    done <<< "$changed_files"
+      [ -n "$file" ] || continue
+      is_protected "$file" && protected_hits+=("$file (commit $short)")
+    done <<< "$changed"
   done
 done
 
-if [ ${#blocked_files[@]} -gt 0 ]; then
+if [ ${#protected_hits[@]} -gt 0 ] || [ ${#log_hits[@]} -gt 0 ] || [ ${#trailer_hits[@]} -gt 0 ]; then
   echo ""
   echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${RED}║           PUSH BLOQUEADO — ARQUIVO PROTEGIDO DETECTADO       ║${NC}"
+  echo -e "${RED}║                       PUSH BLOQUEADO                         ║${NC}"
   echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
+  if [ ${#protected_hits[@]} -gt 0 ]; then
+    echo ""; echo "Arquivo(s) protegido(s) alterado(s):"
+    for f in "${protected_hits[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
+  fi
+  if [ ${#log_hits[@]} -gt 0 ]; then
+    echo ""; echo "Registro de IA ($LOG_REL) alterado de forma não append-only:"
+    for f in "${log_hits[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
+  fi
+  if [ ${#trailer_hits[@]} -gt 0 ]; then
+    echo ""; echo "Commit(s) sem o trailer 'AI-Assisted: yes|no':"
+    for f in "${trailer_hits[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
+    echo -e "  ${YELLOW}Corrija a mensagem:${NC} git commit --amend (último commit) ou git rebase -i (anteriores)"
+  fi
   echo ""
-  echo -e "${YELLOW}Este push contém modificações em arquivos protegidos do repositório.${NC}"
-  echo ""
-  echo "Arquivo(s) proibido(s) detectado(s):"
-  for f in "${blocked_files[@]}"; do
-    echo -e "  ${RED}✗${NC} $f"
-  done
-  echo ""
-  echo "Leia a seção '⚠️ Regras do Repositório' no README.md."
+  echo "Leia as seções 9 e 10 do README.md."
   echo ""
   exit 1
 fi
