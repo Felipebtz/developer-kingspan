@@ -5,7 +5,10 @@
 # Para cada commit novo (que ainda não existe em nenhum remoto), bloqueia o push se:
 #   1. o commit altera um arquivo protegido;
 #   2. o commit remove ou altera linhas existentes do registro de IA (append-only);
-#   3. o commit (não-merge) não tem o trailer "AI-Assisted: yes|no".
+#   3. o commit traz turnos de IA no registro, mas não recebeu a marcação automática
+#      "AI-Assisted: yes" (sinal de commit feito com --no-verify ou antes do ./setup.sh).
+#
+# Commits sem registro de IA não precisam de nenhuma marcação.
 #
 # Cobre commits criados com --no-verify ou antes do ./setup.sh.
 # Observação: a auditoria dos avaliadores NÃO depende deste hook.
@@ -53,7 +56,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       removed="$(git diff-tree --no-commit-id -r --root --numstat "$c" -- "$LOG_REL" | awk '{s+=$2} END {print s+0}')"
       [ "$removed" -gt 0 ] && log_hits+=("commit $short remove $removed linha(s) do registro")
 
-      if ! git log -1 --format=%B "$c" | grep -qiE '^AI-Assisted:[[:space:]]*(yes|no)[[:space:]]*$'; then
+      turns="$(git diff-tree --no-commit-id -r --root -p "$c" -- "$LOG_REL" | grep -cE '^\+### Turn [0-9]')"
+      if [ "$turns" -gt 0 ] && ! git log -1 --format=%B "$c" | grep -qiE '^AI-Assisted:[[:space:]]*yes[[:space:]]*$'; then
         trailer_hits+=("commit $short — $(git log -1 --format=%s "$c")")
       fi
     fi
@@ -79,9 +83,9 @@ if [ ${#protected_hits[@]} -gt 0 ] || [ ${#log_hits[@]} -gt 0 ] || [ ${#trailer_
     for f in "${log_hits[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
   fi
   if [ ${#trailer_hits[@]} -gt 0 ]; then
-    echo ""; echo "Commit(s) sem o trailer 'AI-Assisted: yes|no':"
+    echo ""; echo "Commit(s) com registro de IA sem a marcação automática (hooks não rodaram):"
     for f in "${trailer_hits[@]}"; do echo -e "  ${RED}✗${NC} $f"; done
-    echo -e "  ${YELLOW}Corrija a mensagem:${NC} git commit --amend (último commit) ou git rebase -i (anteriores)"
+    echo -e "  ${YELLOW}Corrija:${NC} rode ./setup.sh e refaça o commit com git commit --amend --no-edit (o hook adiciona a marcação)"
   fi
   echo ""
   echo "Leia as seções 9 e 10 do README.md."
