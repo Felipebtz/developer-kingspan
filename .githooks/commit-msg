@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# commit-msg — Declaração obrigatória de uso de IA
+#
+# Todo commit precisa do trailer "AI-Assisted: yes" ou "AI-Assisted: no".
+# "AI-Assisted: no" é recusado quando o próprio commit traz evidência de IA:
+#   - novas entradas no registro de IA (.agents/changelog/diff.md), ou
+#   - trailer de co-autoria de uma ferramenta de IA.
+#
+
+RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+LOG_REL=".agents/changelog/diff.md"
+MSG_FILE="$1"
+GITDIR="$(git rev-parse --absolute-git-dir)"
+
+# Merge commits não carregam código próprio
+[ -f "$GITDIR/MERGE_HEAD" ] && exit 0
+
+msg="$(grep -v '^#' "$MSG_FILE")"
+decl="$(printf '%s\n' "$msg" | grep -iE '^AI-Assisted:[[:space:]]*(yes|no)[[:space:]]*$' | tail -n 1 \
+        | sed -E 's/^[^:]+:[[:space:]]*//; s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
+
+if [ -z "$decl" ]; then
+  echo ""
+  echo -e "${RED}COMMIT BLOQUEADO — declaração de uso de IA ausente${NC}"
+  echo "Adicione ao final da mensagem do commit uma linha com:"
+  echo ""
+  echo "    AI-Assisted: yes      (o commit contém código/arquivos gerados ou alterados por IA)"
+  echo "    AI-Assisted: no       (o commit foi feito sem IA)"
+  echo ""
+  echo -e "${YELLOW}Exemplo:${NC} git commit -m \"feat: cadeia de aprovação\" -m \"AI-Assisted: yes\" -m \"AI-Agent: ClaudeCode\""
+  echo "Veja a seção 9 do README.md."
+  echo ""
+  exit 1
+fi
+
+if [ "$decl" = "no" ]; then
+  new_turns="$(git diff --cached -U0 -- "$LOG_REL" | grep -cE '^\+### Turn [0-9]')"
+  ai_coauthor="$(printf '%s\n' "$msg" | grep -ciE '^Co-Authored-By:.*(claude|anthropic|copilot|cursor|codex|openai|chatgpt|gemini|windsurf|codeium|aider)')"
+  if [ "${new_turns:-0}" -gt 0 ] || [ "${ai_coauthor:-0}" -gt 0 ]; then
+    echo ""
+    echo -e "${RED}COMMIT BLOQUEADO — declaração 'AI-Assisted: no' incoerente${NC}"
+    [ "${new_turns:-0}" -gt 0 ] && echo "  • Este commit inclui $new_turns novo(s) turno(s) de agente de IA no registro."
+    [ "${ai_coauthor:-0}" -gt 0 ] && echo "  • A mensagem tem co-autoria de uma ferramenta de IA."
+    echo ""
+    echo "Use 'AI-Assisted: yes'. Usar IA não reduz a nota; omitir o uso desclassifica."
+    echo ""
+    exit 1
+  fi
+fi
+
+exit 0

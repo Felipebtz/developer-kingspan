@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      { "command": "bash .agents/hooks/ai-log.sh snapshot Cursor" }
+    ],
+    "stop": [
+      { "command": "bash .agents/hooks/ai-log.sh record Cursor" }
+    ]
+  }
+}

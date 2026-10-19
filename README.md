@@ -4,6 +4,8 @@
 
 > **Stack:** Java ou Node.js + React ou Angular
 > **Prazo:** 2 dias corridos
+> **Uso de IA:** permitido, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
+> **Branch deste enunciado:** `teste-junior`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 7](#7-instruções-de-entrega))
 
 ---
 
@@ -17,7 +19,8 @@
 6. [Critérios de Avaliação](#6-critérios-de-avaliação)
 7. [Instruções de Entrega](#7-instruções-de-entrega)
 8. [Dicas e Considerações](#8-dicas-e-considerações)
-9. [⚠️ Regras do Repositório](#️-regras-do-repositório)
+9. [Uso de IA — permitido, com registro obrigatório](#9-uso-de-ia--permitido-com-registro-obrigatório)
+10. [⚠️ Regras do Repositório](#️-10-regras-do-repositório)
 
 ---
 
@@ -202,20 +205,21 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
 
 ## 7. Instruções de Entrega
 
-1. **Faça um fork deste repositório** para a sua conta pessoal (GitHub, GitLab ou Bitbucket)
-2. Execute `./setup.sh` na raiz do fork antes de começar (configura os hooks de proteção)
-3. Implemente o projeto em estrutura de **monorepo**, criando as pastas dentro do seu fork:
+1. **Faça um fork deste repositório** para a sua conta pessoal do GitHub, **desmarcando** *"Copy the `main` branch only"*
+2. Clone o fork e trabalhe na branch **`teste-junior`** (`git switch teste-junior`). **É ela que será avaliada**
+3. Execute `./setup.sh` na raiz do fork **antes de começar** (no Windows, pelo **Git Bash**). Ele configura os hooks de proteção e o registro automático de IA
+4. Implemente o projeto em estrutura de **monorepo**, criando as pastas dentro do seu fork:
    ```
    backend/    ← back-end
    frontend/   ← front-end
    ```
-4. Mantenha o repositório **público** — a equipe avaliadora irá acessá-lo diretamente pelo link, sem necessidade de convite
-5. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`) com:
+5. Mantenha o repositório **público** — a equipe avaliadora irá acessá-lo diretamente pelo link, sem necessidade de convite
+6. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`) com:
    - Descrição do projeto e decisões técnicas relevantes
    - Pré-requisitos e variáveis de ambiente necessárias (com `.env.example`)
    - Passo a passo para rodar localmente
    - Exemplos de requisições (curl ou collection Postman/Insomnia)
-6. Envie o link do repositório por e-mail até o prazo informado
+7. Envie o link do repositório por e-mail até o prazo informado. O último commit da branch `teste-junior` antes do prazo é o avaliado
 
 > **Importante:**
 > - Entregas sem README funcional ou sem instruções suficientes para rodar o projeto serão **desclassificadas**.
@@ -250,50 +254,89 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
 
 ---
 
-## ⚠️ Regras do Repositório
+
+## 9. Uso de IA — permitido, com registro obrigatório
+
+Você pode usar ferramentas de IA (Claude Code, Cursor, Copilot, ChatGPT etc.). **O que avaliamos é se você entende e consegue explicar o que entregou.** Por isso o uso precisa ser **rastreável**.
+
+### 9.1 Registro automático (`.agents/changelog/diff.md`)
+
+Depois do `./setup.sh`, cada turno de um agente de IA é registrado sozinho:
+
+| Ferramenta | Como o registro acontece |
+|---|---|
+| **Claude Code** e **Cursor** | Hooks do projeto (automático) |
+| **Codex, GitHub Copilot, Gemini e outros agentes** | O agente lê o `AGENTS.md` e executa os comandos de registro |
+| **IA fora do editor** (chat no navegador) | **Você** executa os comandos abaixo antes e depois de colar o código |
+
+```bash
+bash .agents/hooks/ai-log.sh snapshot ChatGPT                     # antes de colar o código gerado
+bash .agents/hooks/ai-log.sh record ChatGPT "o que você pediu à IA" # depois de colar
+```
+
+> 🔒 O registro é commitado no seu fork público. **Não coloque dados pessoais, senhas ou chaves nos prompts.**
+
+### 9.2 Declaração em todo commit
+
+Todo commit precisa ter, na mensagem, o trailer `AI-Assisted: yes` ou `AI-Assisted: no`:
+
+```bash
+git commit -m "feat: máquina de estados" -m "AI-Assisted: yes"
+```
+
+O hook `commit-msg` recusa commits sem essa linha.
+
+### 9.3 Valorizado (não obrigatório)
+
+Um `AI_USAGE.md` na raiz, escrito por você, contando em poucas linhas quais ferramentas usou, para quê e em que momento a IA errou e você corrigiu.
+
+### 9.4 Eliminatório
+
+- Omitir uso de IA (`AI-Assisted: no` em código gerado por IA)
+- Editar ou apagar entradas do `.agents/changelog/diff.md` (ele só recebe novas entradas)
+- Desativar ou contornar os hooks (`--no-verify`, alterar `core.hooksPath` etc.)
+
+> Usar IA **não** reduz a nota. Esconder o uso desclassifica.
+
+---
+
+## ⚠️ 10. Regras do Repositório
 
 > Leia esta seção com atenção antes de iniciar o desenvolvimento.
 
-### Configuração inicial obrigatória
-
-Antes de começar, execute o script de setup na raiz do repositório:
+### 10.1 Configuração inicial obrigatória
 
 ```bash
 ./setup.sh
 ```
 
-Esse script configura os hooks Git necessários para o funcionamento correto do projeto.
+O script ativa os hooks Git (`pre-commit`, `commit-msg`, `pre-push`) e o registro automático de IA. No Windows, execute pelo **Git Bash**.
 
-### Arquivos protegidos
+### 10.2 Arquivos protegidos
 
-Os arquivos e diretórios abaixo são **pré-existentes** e **não devem ser modificados ou removidos** em hipótese alguma:
+Os arquivos abaixo são **pré-existentes** e **não podem ser modificados nem removidos**:
 
 | Arquivo / Diretório | Motivo |
 |---------------------|--------|
 | `README.md` | Enunciado do desafio |
-| `.gitignore` | Configuração do repositório |
-| `AGENTS.md` | Configuração de agentes de IA |
-| `CLAUDE.md` | Configuração de agentes de IA |
-| `.cursor/` | Regras de agentes Cursor |
-| `.githooks/` | Hooks de proteção do repositório |
-| `setup.sh` | Script de instalação dos hooks |
-| `.agents/` | Monitoramento de uso de IA |
+| `.gitignore`, `.gitattributes` | Configuração do repositório (use `.gitignore` próprios dentro de `backend/` e `frontend/`) |
+| `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` | Instruções obrigatórias para agentes de IA |
+| `.claude/settings.json`, `.cursor/` | Hooks de registro de IA |
+| `.githooks/`, `setup.sh` | Hooks de proteção e instalação |
+| `.agents/` | Registro de uso de IA (o `.agents/changelog/diff.md` só recebe novas entradas) |
 
-### Consequências
+### 10.3 Consequências
 
-- O **git log de todos os commits** será auditado durante a avaliação para verificar se arquivos protegidos foram alterados
-- Projetos que modificarem ou removerem arquivos protegidos serão **desclassificados automaticamente**
-- Um hook `pre-push` bloqueia automaticamente o envio de qualquer commit que contenha alterações nos arquivos protegidos
+- O **histórico completo de commits** é auditado. Alterar arquivo protegido, adulterar o registro de IA ou contornar os hooks **desclassifica automaticamente**
+- Os hooks bloqueiam localmente a maior parte dessas situações, mas a auditoria é feita do nosso lado, sobre o seu fork
 
-### Desenvolvimento do projeto
-
-Após fazer o fork e executar `./setup.sh`, crie suas pastas de trabalho dentro do repositório:
+### 10.4 Estrutura esperada
 
 ```
-developer-challenge/          ← seu fork
+developer-challenge/          ← seu fork (branch teste-junior)
 ├── backend/    ← crie aqui o back-end
 ├── frontend/   ← crie aqui o front-end
-└── ...         ← outros arquivos do seu projeto
+└── ...         ← outros arquivos do seu projeto (ex.: docker-compose.yml, AI_USAGE.md)
 ```
 
 Não altere arquivos fora das suas próprias pastas de trabalho.
