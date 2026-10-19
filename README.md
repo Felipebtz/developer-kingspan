@@ -3,7 +3,7 @@
 ## Teste Técnico — Desenvolvedor(a) Júnior Fullstack
 
 > **Stack:** Java ou Node.js + React ou Angular
-> **Prazo:** 2 dias corridos
+> **Prazo:** 3 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 12–16 h, incluindo o vídeo)
 > **Uso de IA:** permitido, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
 > **Vídeo:** obrigatório, de 8 a 12 min, com fluxo ao vivo, percurso no código e decisões (ver [seção 7.1](#71-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-junior`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 7](#7-instruções-de-entrega))
@@ -22,6 +22,7 @@
 8. [Dicas e Considerações](#8-dicas-e-considerações)
 9. [Uso de IA — permitido, com registro obrigatório](#9-uso-de-ia--permitido-com-registro-obrigatório)
 10. [⚠️ Regras do Repositório](#️-10-regras-do-repositório)
+11. [Dúvidas](#11-dúvidas)
 
 ---
 
@@ -36,8 +37,11 @@ Você foi contratado(a) para construir um sistema interno de gestão de solicita
 | Papel | Descrição |
 |-------|-----------|
 | `SOLICITANTE` | Cria e acompanha suas próprias solicitações |
-| `APROVADOR` | Analisa e aprova ou rejeita solicitações atribuídas a ele |
-| `ADMIN` | Acesso total; pode cancelar qualquer solicitação e visualizar todos os registros |
+| `APROVADOR` | Analisa e aprova ou rejeita solicitações **pendentes** cujo nível de aprovação seja compatível com o seu `approverLevel` (ver 4.2) |
+| `ADMIN` | Acesso total; aprova qualquer nível, pode cancelar qualquer solicitação e visualizar todos os registros |
+
+- Todo `APROVADOR` tem um atributo **`approverLevel`**: `NIVEL_1` ou `NIVEL_2`. Ele é informado no cadastro (2.1). O "aprovador sênior" da seção 4.2 é o `APROVADOR` com `approverLevel: NIVEL_2`
+- Somente `SOLICITANTE` cria solicitações
 
 ---
 
@@ -45,14 +49,16 @@ Você foi contratado(a) para construir um sistema interno de gestão de solicita
 
 ### 2.1 Autenticação e usuários
 
-- Cadastro de usuário informando nome, e-mail, senha e papel (role)
+- Cadastro de usuário informando nome, e-mail, senha e papel (role); para `APROVADOR`, também o `approverLevel` (`NIVEL_1` ou `NIVEL_2`)
 - Login retornando token JWT
 - Endpoints protegidos por autenticação — sem token válido retornam `401`
 
 ### 2.2 Solicitações de compra
 
 - Criar solicitação informando: título, descrição, valor e categoria
-- Listar solicitações com filtro por status e paginação
+- `category` é um enum: `EQUIPMENT | SERVICES | SUPPLIES | TRAVEL | SOFTWARE | OTHER`
+- Listar solicitações com filtro por status e paginação, por exemplo `GET /requests?status=PENDING&page=0&size=10`
+- Visibilidade: o `SOLICITANTE` vê só as próprias solicitações; `APROVADOR` e `ADMIN` veem todas
 - Detalhar uma solicitação pelo ID
 - Cancelar solicitação (somente `SOLICITANTE` dono ou `ADMIN`)
 
@@ -66,7 +72,7 @@ Você foi contratado(a) para construir um sistema interno de gestão de solicita
 ### 2.4 Interface web (front-end)
 
 - Tela de login
-- Dashboard com resumo: totais por status (pendente, aprovada, rejeitada, cancelada)
+- Dashboard com resumo: totais por status (pendente, aprovada, rejeitada, cancelada), considerando só as solicitações que o usuário pode ver
 - Listagem de solicitações com filtro por status
 - Formulário de criação de solicitação
 - Tela de detalhe mostrando: dados da solicitação, status atual e histórico de ações
@@ -100,8 +106,9 @@ Você foi contratado(a) para construir um sistema interno de gestão de solicita
 
 - **Sucesso:** HTTP `2xx` com corpo JSON padronizado
 - **Erros de validação:** HTTP `400` com lista de erros
-- **Não autorizado:** HTTP `401` / Sem permissão: HTTP `403`
-- **Ação inválida para o estado atual:** HTTP `422` com mensagem descritiva
+- **Não autorizado:** HTTP `401` (sem token ou token inválido)
+- **Sem permissão:** HTTP `403` quando o **papel** não permite a ação (ex.: `SOLICITANTE` tentando aprovar)
+- **Regra de negócio:** HTTP `422` com mensagem descritiva quando o papel permite, mas a regra impede: ação inválida para o estado atual **ou** nível de aprovação insuficiente (ex.: `APROVADOR` `NIVEL_1` tentando aprovar uma solicitação de `NIVEL_2`)
 
 ### 3.4 Exemplo de payload — criar solicitação
 
@@ -134,15 +141,15 @@ Content-Type: application/json
 
 | Valor da Solicitação | Nível de Aprovação Necessário |
 |----------------------|-------------------------------|
-| Até R$ 1.000,00 | `NIVEL_1` — qualquer `APROVADOR` pode aprovar |
-| Entre R$ 1.000,01 e R$ 10.000,00 | `NIVEL_2` — apenas `APROVADOR` sênior ou `ADMIN` |
+| Até R$ 1.000,00 | `NIVEL_1` — qualquer `APROVADOR` (`NIVEL_1` ou `NIVEL_2`) ou `ADMIN` |
+| Entre R$ 1.000,01 e R$ 10.000,00 | `NIVEL_2` — apenas `APROVADOR` com `approverLevel: NIVEL_2` (o "aprovador sênior") ou `ADMIN` |
 | Acima de R$ 10.000,00 | `NIVEL_3` — somente `ADMIN` pode aprovar |
 
 ### 4.3 Transições válidas
 
 ```
-PENDING → APPROVED   — somente por APROVADOR com nível compatível
-PENDING → REJECTED   — somente por APROVADOR com nível compatível
+PENDING → APPROVED   — somente por APROVADOR com nível compatível, ou ADMIN
+PENDING → REJECTED   — somente por APROVADOR com nível compatível, ou ADMIN
 PENDING → CANCELLED  — pelo próprio SOLICITANTE ou por ADMIN
 APPROVED  → qualquer coisa — BLOQUEADO (estado final)
 REJECTED  → qualquer coisa — BLOQUEADO (estado final)
@@ -206,22 +213,32 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
 
 ## 7. Instruções de Entrega
 
-1. **Faça um fork deste repositório** para a sua conta pessoal do GitHub, **desmarcando** *"Copy the `main` branch only"*
+1. **Faça um fork deste repositório** para a sua conta pessoal do GitHub, **desmarcando** *"Copy the `main` branch only"*. **Não** abra Pull Request para o repositório original
 2. Clone o fork e trabalhe na branch **`teste-junior`** (`git switch teste-junior`). **É ela que será avaliada**
-3. Execute `./setup.sh` na raiz do fork **antes de começar** (no Windows, pelo **Git Bash**). Ele configura os hooks de proteção e o registro automático de IA
-4. Implemente o projeto em estrutura de **monorepo**, criando as pastas dentro do seu fork:
+3. Execute `./setup.sh` na raiz do fork **antes do primeiro commit** (no Windows, pelo **Git Bash**). Ele configura os hooks de proteção e o registro automático de IA. Se clonar de novo ou trocar de máquina, rode outra vez
+4. **Faça todos os commits pelo terminal**, depois do setup. Commits feitos pelo site do GitHub não passam pelos hooks e também precisam da declaração de IA (seção 9.2)
+5. Implemente o projeto em estrutura de **monorepo**, criando as pastas dentro do seu fork:
    ```
    backend/    ← back-end
    frontend/   ← front-end
    ```
-5. Mantenha o repositório **público** — a equipe avaliadora irá acessá-lo diretamente pelo link, sem necessidade de convite
-6. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`) com:
+6. Mantenha o repositório **público** — a equipe avaliadora irá acessá-lo diretamente pelo link, sem necessidade de convite
+7. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`) com:
    - Descrição do projeto e decisões técnicas relevantes
    - Pré-requisitos e variáveis de ambiente necessárias (com `.env.example`)
    - Passo a passo para rodar localmente
    - Exemplos de requisições (curl ou collection Postman/Insomnia)
-7. Grave o **vídeo de apresentação** seguindo o roteiro da [seção 7.1](#71-vídeo-de-apresentação-obrigatório) e coloque o link no `backend/README.md`
-8. Envie o link do repositório e do vídeo por e-mail até o prazo informado. O último commit da branch `teste-junior` antes do prazo é o avaliado
+8. Grave o **vídeo de apresentação** seguindo o roteiro da [seção 7.1](#71-vídeo-de-apresentação-obrigatório) e coloque o link no `backend/README.md`
+9. Responda ao e-mail do convite com o link do repositório e do vídeo **dentro do prazo**. O último commit da branch `teste-junior` antes do prazo é o avaliado
+
+**Fez o fork só com a `main`?** Recupere a branch do teste no seu clone:
+
+```bash
+git remote add upstream https://github.com/kingspanisoeste/developer-challenge.git
+git fetch upstream teste-junior
+git switch -c teste-junior upstream/teste-junior
+git push -u origin teste-junior
+```
 
 > **Importante:**
 > - Entregas sem README funcional ou sem instruções suficientes para rodar o projeto serão **desclassificadas**.
@@ -238,7 +255,7 @@ Queremos ver que você **entende o que construiu**: como o sistema funciona, o q
 - **Duração:** 8 a 12 minutos
 - **Tela + a sua voz**, em português. Câmera é opcional
 - Explique **com as suas palavras**. Pode usar um roteiro de tópicos, mas não leia um texto pronto palavra por palavra nem use narração sintética (voz gerada)
-- Grave sobre a versão final do código e diga o **hash do último commit** no início
+- No início, diga o **hash do commit do código que está gravando**. Um commit depois da gravação que só adiciona o link do vídeo é esperado
 - Link não listado (YouTube, Loom ou Google Drive com acesso por link)
 
 **Roteiro obrigatório** (nesta ordem; os tempos são referência)
@@ -275,10 +292,9 @@ Queremos ver que você **entende o que construiu**: como o sistema funciona, o q
 - Ausência de testes automatizados (são diferenciais, não requisito)
 - Escolha de framework específico dentro das opções oferecidas
 
-> Boa sorte! Em caso de dúvidas sobre o enunciado, entre em contato antes de tomar decisões de design.
+> Boa sorte! Em caso de dúvidas sobre o enunciado, pergunte antes de tomar decisões de design (ver [seção 11](#11-dúvidas)).
 
 ---
-
 
 ## 9. Uso de IA — permitido, com registro obrigatório
 
@@ -292,7 +308,9 @@ Depois do `./setup.sh`, cada turno de um agente de IA é registrado sozinho:
 |---|---|
 | **Claude Code** e **Cursor** | Hooks do projeto (automático) |
 | **Codex, GitHub Copilot, Gemini e outros agentes** | O agente lê o `AGENTS.md` e executa os comandos de registro |
-| **IA fora do editor** (chat no navegador) | **Você** executa os comandos abaixo antes e depois de colar o código |
+| **IA fora do editor** (chat no navegador) **gerando código que você cola** | **Você** executa os comandos abaixo antes e depois de colar o código |
+| **Autocomplete no editor** (Copilot, Cursor Tab, Codeium…) | Não gera registro por turno. Declare `AI-Assisted: yes` nos commits em que usou e conte no vídeo |
+| **Chat só para tirar dúvida**, sem colar código | Não precisa de registro nem muda a declaração do commit |
 
 ```bash
 bash .agents/hooks/ai-log.sh snapshot ChatGPT                     # antes de colar o código gerado
@@ -311,6 +329,10 @@ git commit -m "feat: máquina de estados" -m "AI-Assisted: yes"
 
 O hook `commit-msg` recusa commits sem essa linha.
 
+- **Vale para todo commit, inclusive os feitos pelo site do GitHub** (que não passam pelos hooks). Prefira o terminal. Se precisar editar pelo site, escreva a linha na descrição do commit
+- O registro de IA ainda não commitado **entra sozinho no próximo commit**. Por isso, depois de usar um agente, o próximo commit precisa ser `yes`. Para manter um commit só seu como `no`, commite antes o trabalho do agente
+- Esqueceu a linha no último commit e ainda não fez push? Corrija com `git commit --amend`
+
 ### 9.3 Valorizado (não obrigatório)
 
 Um `AI_USAGE.md` na raiz, escrito por você, contando em poucas linhas quais ferramentas usou, para quê e em que momento a IA errou e você corrigiu.
@@ -319,7 +341,8 @@ Um `AI_USAGE.md` na raiz, escrito por você, contando em poucas linhas quais fer
 
 - Omitir uso de IA (`AI-Assisted: no` em código gerado por IA)
 - Editar ou apagar entradas do `.agents/changelog/diff.md` (ele só recebe novas entradas)
-- Desativar ou contornar os hooks (`--no-verify`, alterar `core.hooksPath` etc.)
+- Desativar os hooks do repositório ou do agente, ou contorná-los (ex.: `--no-verify`, alterar `core.hooksPath`)
+- Não conseguir explicar, no vídeo ou na conversa, um trecho que você entregou
 
 > Usar IA **não** reduz a nota. Esconder o uso desclassifica.
 
@@ -337,6 +360,8 @@ Um `AI_USAGE.md` na raiz, escrito por você, contando em poucas linhas quais fer
 
 O script ativa os hooks Git (`pre-commit`, `commit-msg`, `pre-push`) e o registro automático de IA. No Windows, execute pelo **Git Bash**.
 
+> **Atenção:** ferramentas como **husky** e **lefthook** trocam o `core.hooksPath` e desligam os hooks do desafio, o que é eliminatório. Se quiser lint ou formatação, rode como script do projeto.
+
 ### 10.2 Arquivos protegidos
 
 Os arquivos abaixo são **pré-existentes** e **não podem ser modificados nem removidos**:
@@ -352,7 +377,7 @@ Os arquivos abaixo são **pré-existentes** e **não podem ser modificados nem r
 
 ### 10.3 Consequências
 
-- O **histórico completo de commits** é auditado. Alterar arquivo protegido, adulterar o registro de IA ou contornar os hooks **desclassifica automaticamente**
+- O **histórico completo de commits** é auditado. Alterar arquivo protegido, adulterar o registro de IA ou contornar os hooks **desclassifica automaticamente**, mesmo que a alteração tenha sido desfeita depois
 - Os hooks bloqueiam localmente a maior parte dessas situações, mas a auditoria é feita do nosso lado, sobre o seu fork
 
 ### 10.4 Estrutura esperada
@@ -361,7 +386,13 @@ Os arquivos abaixo são **pré-existentes** e **não podem ser modificados nem r
 developer-challenge/          ← seu fork (branch teste-junior)
 ├── backend/    ← crie aqui o back-end
 ├── frontend/   ← crie aqui o front-end
-└── ...         ← outros arquivos do seu projeto (ex.: docker-compose.yml, AI_USAGE.md)
+└── ...         ← outros arquivos do seu projeto (ex.: docker-compose.yml, AI_USAGE.md, package.json de workspace)
 ```
 
-Não altere arquivos fora das suas próprias pastas de trabalho.
+Não altere os arquivos protegidos (10.2). Arquivos novos podem ficar nas suas pastas ou na raiz.
+
+---
+
+## 11. Dúvidas
+
+Responda ao e-mail do convite. **Perguntar é bem-visto e não conta contra você.** Se a resposta não chegar a tempo, decida, escreva a sua premissa no `backend/README.md` e siga em frente.
