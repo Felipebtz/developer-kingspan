@@ -26,6 +26,8 @@ Running these commands when your tool already ran them through hooks is **harmle
 
 Every file change made by an AI agent must be recorded in `.agents/changelog/diff.md`. **All entries must be written in English.**
 
+> **Recording is the agent's job, not the candidate's.** The candidate does not mark anything. Anything that is not recorded in the log is treated as work written by the candidate without AI assistance, so an unrecorded change misrepresents the candidate's work. Never skip it.
+
 ### 1.1 How logging works
 
 - **Claude Code** and **Cursor**: repository hooks (`.claude/settings.json`, `.cursor/hooks.json`) call the logger **automatically** at the start and at the end of every turn. You must still run step 3 of the checklist to add the summary.
@@ -94,7 +96,7 @@ AI_USAGE.md
 
 Root-level tooling files are also allowed (e.g. a workspace `package.json`, `Makefile`, `.editorconfig`, `.dockerignore`, a nested `.gitattributes`). Do not create files elsewhere unless the user explicitly asks and the target is not protected. Never add tools that change `core.hooksPath` (husky, lefthook, pre-commit).
 
-Prefer committing from the terminal. Commits made through the GitHub web UI bypass the hooks and still need the `AI-Assisted` trailer.
+Always commit from the terminal so the repository hooks run.
 
 ---
 

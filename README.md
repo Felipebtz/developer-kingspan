@@ -4,7 +4,7 @@
 
 > **Stack:** Java (Spring Boot) ou Node.js (NestJS / Express / Fastify) + React (Next.js é aceito) ou Angular
 > **Prazo:** 7 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 20–25 h, incluindo o vídeo)
-> **Uso de IA:** permitido e esperado, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
+> **Uso de IA:** permitido e esperado; o registro é automático e você não precisa marcar nada (ver [seção 9](#9-uso-de-ia--permitido-com-registro-automático))
 > **Entrega:** fork público no GitHub + **vídeo de 15 a 25 min** seguindo o fluxo operacional do sistema e explicando regras de negócio, detalhes técnicos, validações, decisões de arquitetura e contingências (ver [seção 8.1](#81-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-pleno`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 8](#8-instruções-de-entrega))
 
@@ -20,7 +20,7 @@
 6. [Diferenciais](#6-diferenciais)
 7. [Critérios de Avaliação](#7-critérios-de-avaliação)
 8. [Instruções de Entrega](#8-instruções-de-entrega)
-9. [Uso de IA — permitido, com registro obrigatório](#9-uso-de-ia--permitido-com-registro-obrigatório)
+9. [Uso de IA — permitido, com registro automático](#9-uso-de-ia--permitido-com-registro-automático)
 10. [⚠️ Regras do Repositório (eliminatórias)](#️-10-regras-do-repositório-eliminatórias)
 11. [Dúvidas](#11-dúvidas)
 
@@ -324,7 +324,7 @@ Na raiz do seu fork (o `README.md` da raiz é o enunciado e **não pode ser alte
 ### 5.6 Histórico de commits
 
 - Commits pequenos e coerentes, preferencialmente em [Conventional Commits](https://www.conventionalcommits.org/pt-br/), contando a evolução da solução. Um único commit gigante no final é um sinal negativo
-- Todo commit leva o trailer `AI-Assisted: yes` ou `AI-Assisted: no` (ver 9.2). O hook instalado pelo `setup.sh` cobra isso
+- Commits com registro de IA recebem a marcação `AI-Assisted: yes` automaticamente (ver 9.2); você não precisa marcar nada
 
 ---
 
@@ -385,7 +385,7 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 3. **Antes do primeiro commit**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA. O setup vale para cada clone: se clonar de novo ou trocar de máquina, rode outra vez
 4. Habilite o **GitHub Actions** na aba *Actions* do fork (vem desligado em forks)
 5. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz. Arquivos de ferramenta na raiz (ex.: `package.json` de workspace, `Makefile`, `.editorconfig`, `.dockerignore`) também são permitidos
-6. **Faça todos os commits pelo terminal**, depois do setup. Commits feitos pelo site do GitHub não passam pelos hooks e também precisam da declaração de IA (seção 9.2)
+6. **Faça todos os commits pelo terminal**, depois do setup. Pelo site do GitHub os hooks não rodam
 7. Grave o **vídeo de apresentação** conforme a [seção 8.1](#81-vídeo-de-apresentação-obrigatório)
 8. Responda ao e-mail do convite com o link do fork e o link do vídeo **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado; commits posteriores não são considerados
 
@@ -433,46 +433,30 @@ Solicitante cria uma solicitação acima de R$ 10.000 → submete → aprovaçõ
 
 ---
 
-## 9. Uso de IA — permitido, com registro obrigatório
+## 9. Uso de IA — permitido, com registro automático
 
-Usamos IA no dia a dia e esperamos que você também use. **O que avaliamos não é se você usou IA, mas como**: se você entende, revisa, testa e se responsabiliza pelo que entrega. Por isso o uso precisa ser **rastreável**.
+Usamos IA no dia a dia e esperamos que você também use. **O que avaliamos não é se você usou IA, mas como**: se você entende, revisa, testa e se responsabiliza pelo que entrega. Por isso o uso fica **registrado**, e **você não precisa marcar nada**.
 
-### 9.1 Registro automático (`.agents/changelog/diff.md`)
+### 9.1 Como o registro funciona (`.agents/changelog/diff.md`)
 
-Depois do `./setup.sh`, o repositório já vem configurado para registrar **sozinho** cada turno de um agente de IA:
+Depois do `./setup.sh`, o próprio repositório cuida do registro. Os agentes de IA anotam o que fizeram, quais arquivos alteraram e quantas linhas:
 
 | Ferramenta | Como o registro acontece |
 |---|---|
-| **Claude Code** | Hooks em `.claude/settings.json` (automático) |
-| **Cursor** | Hooks em `.cursor/hooks.json` (automático) |
-| **Codex, GitHub Copilot, Gemini, Windsurf e outros agentes** | O agente lê `AGENTS.md` e executa os comandos de registro no início e no fim de cada tarefa |
-| **IA fora do editor** (ChatGPT, Claude.ai, Gemini no navegador…) **gerando código que você cola** | **Você** executa os comandos antes e depois de colar o código (ver abaixo) |
-| **Autocomplete no editor** (Copilot, Cursor Tab, Codeium…) | Não gera registro por turno. Declare `AI-Assisted: yes` nos commits em que usou e conte no `AI_USAGE.md` |
-| **Chat só para tirar dúvida**, sem colar código | Não precisa de registro nem muda a declaração do commit. Conte no `AI_USAGE.md` |
+| **Claude Code** e **Cursor** | Hooks do projeto (`.claude/settings.json`, `.cursor/hooks.json`), automático |
+| **Codex, GitHub Copilot (modo agente), Gemini, Windsurf e outros agentes** | O agente segue as instruções do `AGENTS.md` e faz o registro sozinho |
+| **IA fora do editor** (ChatGPT, Claude.ai, Gemini no navegador…) **gerando código que você cola** | Opcional: `bash .agents/hooks/ai-log.sh snapshot ChatGPT` antes de colar e `bash .agents/hooks/ai-log.sh record ChatGPT "o que pediu"` depois |
+| **Autocomplete no editor** ou **chat só para tirar dúvida** | Não precisa registrar. Se quiser, conte no `AI_USAGE.md` |
 
-Cada registro traz a data, a ferramenta, o prompt (resumido), os arquivos alterados e as linhas adicionadas/removidas. Para registrar manualmente:
-
-```bash
-bash .agents/hooks/ai-log.sh snapshot ChatGPT                     # antes de colar o código gerado
-bash .agents/hooks/ai-log.sh record ChatGPT "o que você pediu à IA" # depois de colar
-```
+**Regra simples:** o que está no registro foi feito com IA; **o que não está no registro é considerado escrito por você**, e é cobrado como tal no vídeo e na conversa técnica.
 
 > 🔒 O registro é commitado no seu fork público. **Não coloque dados pessoais, senhas ou chaves nos prompts.** Padrões comuns de chave são mascarados automaticamente, mas a responsabilidade é sua.
 
-### 9.2 Declaração em todo commit
+### 9.2 Marcação dos commits (automática)
 
-Todo commit precisa ter, na mensagem, o trailer:
-
-```
-AI-Assisted: yes        # ou: AI-Assisted: no
-AI-Agent: ClaudeCode    # opcional, recomendado quando yes
-```
-
-O hook `commit-msg` recusa commits sem o trailer, e também recusa `AI-Assisted: no` quando há registro de IA novo no mesmo commit ou co-autoria de IA na mensagem.
-
-- **Vale para todo commit, inclusive os feitos pelo site do GitHub** (que não passam pelos hooks). Prefira o terminal. Se precisar editar pelo site, escreva o trailer na descrição do commit
-- O registro de IA ainda não commitado **entra sozinho no próximo commit**. Por isso, depois de um turno de agente, o próximo commit precisa ser `yes`. Para manter um commit só seu como `no`, commite antes o trabalho do agente
-- Esqueceu o trailer no último commit e ainda não fez push? Corrija com `git commit --amend`
+- Quando um commit inclui registro de IA, o hook `commit-msg` adiciona sozinho `AI-Assisted: yes` e o nome do agente à mensagem. Commits sem registro não recebem marcação e contam como trabalho sem IA
+- O registro ainda não commitado entra no **próximo commit**. Se quiser manter um commit só seu separado, commite antes o trabalho do agente
+- **Faça os commits pelo terminal.** Pelo site do GitHub os hooks não rodam
 
 ### 9.3 `AI_USAGE.md` (escrito por você, não pela IA)
 
@@ -485,10 +469,9 @@ Responda com as suas palavras, em até 1 página:
 
 ### 9.4 O que é eliminatório no uso de IA
 
-- **Omitir** uso de IA, declarando `AI-Assisted: no` em um commit cujo código foi gerado por IA
+- **Impedir o registro**: pedir ao agente para não registrar, desativar os hooks do repositório ou do agente, ou contorná-los (ex.: `--no-verify`, alterar `core.hooksPath`)
 - **Editar ou apagar** entradas do `.agents/changelog/diff.md` (ele é **append-only**)
-- **Desativar** os hooks do repositório ou do agente, ou contorná-los (ex.: `--no-verify`, alterar `core.hooksPath`)
-- Não conseguir explicar, na conversa técnica, um trecho que você entregou
+- Não conseguir explicar, no vídeo ou na conversa técnica, um trecho que você entregou
 
 > Usar muita IA **não** reduz a nota. Esconder o uso desclassifica.
 

@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 #
-# commit-msg — Declaração obrigatória de uso de IA
+# commit-msg — Marcação automática de uso de IA
 #
-# Todo commit precisa do trailer "AI-Assisted: yes" ou "AI-Assisted: no".
-# "AI-Assisted: no" é recusado quando o próprio commit traz evidência de IA:
-#   - novas entradas no registro de IA (.agents/changelog/diff.md), ou
-#   - trailer de co-autoria de uma ferramenta de IA.
+# O candidato não precisa marcar nada no commit. Este hook:
+#   - adiciona "AI-Assisted: yes" e "AI-Agent: <agentes>" quando o commit traz
+#     turnos de agente no registro de IA (.agents/changelog/diff.md) ou
+#     co-autoria de uma ferramenta de IA na mensagem;
+#   - recusa "AI-Assisted: no" nesses casos (declaração incoerente).
+#
+# Commit sem registro de IA = trabalho sem assistência de IA.
 #
 
-RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+RED='\033[0;31m'; NC='\033[0m'
 LOG_REL=".agents/changelog/diff.md"
 MSG_FILE="$1"
 GITDIR="$(git rev-parse --absolute-git-dir)"
@@ -20,37 +23,29 @@ msg="$(grep -v '^#' "$MSG_FILE")"
 decl="$(printf '%s\n' "$msg" | grep -iE '^AI-Assisted:[[:space:]]*(yes|no)[[:space:]]*$' | tail -n 1 \
         | sed -E 's/^[^:]+:[[:space:]]*//; s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
 
-if [ -z "$decl" ]; then
+turn_lines="$(git diff --cached -U0 -- "$LOG_REL" | grep -E '^\+### Turn [0-9]')"
+n_turns="$(printf '%s\n' "$turn_lines" | grep -c .)"
+agents="$(printf '%s\n' "$turn_lines" | grep . | sed -E 's/.* · //; s/[[:space:]]+$//' | sort -u | paste -sd, - | sed 's/,/, /g')"
+ai_coauthor="$(printf '%s\n' "$msg" | grep -ciE '^Co-Authored-By:.*(claude|anthropic|copilot|cursor|codex|openai|chatgpt|gemini|windsurf|codeium|aider)')"
+
+[ "${n_turns:-0}" -gt 0 ] || [ "${ai_coauthor:-0}" -gt 0 ] || exit 0
+
+if [ "$decl" = "no" ]; then
   echo ""
-  echo -e "${RED}COMMIT BLOQUEADO — declaração de uso de IA ausente${NC}"
-  echo "Adicione ao final da mensagem do commit uma linha com:"
+  echo -e "${RED}COMMIT BLOQUEADO — declaração 'AI-Assisted: no' incoerente${NC}"
+  [ "${n_turns:-0}" -gt 0 ] && echo "  • Este commit inclui $n_turns turno(s) de agente de IA no registro."
+  [ "${ai_coauthor:-0}" -gt 0 ] && echo "  • A mensagem tem co-autoria de uma ferramenta de IA."
   echo ""
-  echo "    AI-Assisted: yes      (o commit contém código/arquivos gerados ou alterados por IA)"
-  echo "    AI-Assisted: no       (o commit foi feito sem IA)"
-  echo ""
-  echo -e "${YELLOW}Exemplo:${NC} git commit -m \"feat: cadeia de aprovação\" -m \"AI-Assisted: yes\" -m \"AI-Agent: ClaudeCode\""
-  echo "Veja a seção 9 do README.md."
+  echo "Remova a linha 'AI-Assisted: no': a marcação é feita automaticamente."
   echo ""
   exit 1
 fi
 
-if [ "$decl" = "no" ]; then
-  new_turns="$(git diff --cached -U0 -- "$LOG_REL" | grep -cE '^\+### Turn [0-9]')"
-  ai_coauthor="$(printf '%s\n' "$msg" | grep -ciE '^Co-Authored-By:.*(claude|anthropic|copilot|cursor|codex|openai|chatgpt|gemini|windsurf|codeium|aider)')"
-  if [ "${new_turns:-0}" -gt 0 ] || [ "${ai_coauthor:-0}" -gt 0 ]; then
-    echo ""
-    echo -e "${RED}COMMIT BLOQUEADO — declaração 'AI-Assisted: no' incoerente${NC}"
-    [ "${new_turns:-0}" -gt 0 ] && echo "  • Este commit inclui $new_turns novo(s) turno(s) de agente de IA no registro."
-    [ "${ai_coauthor:-0}" -gt 0 ] && echo "  • A mensagem tem co-autoria de uma ferramenta de IA."
-    echo ""
-    echo "Use 'AI-Assisted: yes'. Usar IA não reduz a nota; omitir o uso desclassifica."
-    if [ "${new_turns:-0}" -gt 0 ]; then
-      echo "Dica: o registro de IA ainda não commitado entra sozinho no próximo commit. Para que um"
-      echo "commit só seu seja 'no', commite antes o trabalho do agente (com 'AI-Assisted: yes')."
-    fi
-    echo ""
-    exit 1
-  fi
+if [ "$decl" != "yes" ]; then
+  git interpret-trailers --in-place --trailer "AI-Assisted: yes" "$MSG_FILE"
+fi
+if [ -n "$agents" ] && ! grep -qiE '^AI-Agent:' "$MSG_FILE"; then
+  git interpret-trailers --in-place --trailer "AI-Agent: $agents" "$MSG_FILE"
 fi
 
 exit 0
