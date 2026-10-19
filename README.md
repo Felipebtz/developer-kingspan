@@ -5,7 +5,7 @@
 > **Stack:** Java ou Node.js + React ou Angular
 > **Prazo:** 3 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 12–16 h, incluindo o vídeo)
 > **Uso de IA:** permitido, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
-> **Vídeo:** obrigatório, de 8 a 12 min, com fluxo ao vivo, percurso no código e decisões (ver [seção 7.1](#71-vídeo-de-apresentação-obrigatório))
+> **Vídeo:** obrigatório, de 8 a 12 min, seguindo o fluxo operacional do sistema e explicando regras de negócio, detalhes técnicos, validações, decisões e contingências (ver [seção 7.1](#71-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-junior`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 7](#7-instruções-de-entrega))
 
 ---
@@ -228,8 +228,8 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
    - Pré-requisitos e variáveis de ambiente necessárias (com `.env.example`)
    - Passo a passo para rodar localmente
    - Exemplos de requisições (curl ou collection Postman/Insomnia)
-8. Grave o **vídeo de apresentação** seguindo o roteiro da [seção 7.1](#71-vídeo-de-apresentação-obrigatório) e coloque o link no `backend/README.md`
-9. Responda ao e-mail do convite com o link do repositório e do vídeo **dentro do prazo**. O último commit da branch `teste-junior` antes do prazo é o avaliado
+8. Grave o **vídeo de apresentação** conforme a [seção 7.1](#71-vídeo-de-apresentação-obrigatório)
+9. Responda ao e-mail do convite com o link do repositório e do vídeo **dentro do prazo**. O último commit da branch `teste-junior` antes do prazo é o avaliado; commits posteriores não são considerados
 
 **Fez o fork só com a `main`?** Recupere a branch do teste no seu clone:
 
@@ -244,27 +244,33 @@ git push -u origin teste-junior
 > - Entregas sem README funcional ou sem instruções suficientes para rodar o projeto serão **desclassificadas**.
 > - Projetos que não compilam ou não inicializam **não serão avaliados**.
 > - Repositórios **privados** não serão avaliados.
-> - Entregas **sem o vídeo**, ou com vídeo que não cubra os 3 blocos da seção 7.1, ficam **incompletas** e não seguem para a próxima etapa.
+> - Entregas **sem o vídeo**, ou com vídeo que não cubra os temas da seção 7.1, ficam **incompletas** e não seguem para a próxima etapa.
 
 ### 7.1 Vídeo de apresentação (obrigatório)
 
-Queremos ver que você **entende o que construiu**: como o sistema funciona, o que acontece por trás de cada ação e por que você fez desse jeito. Não basta mostrar as telas funcionando.
+Um vídeo **simples**: você usa o sistema seguindo o **fluxo operacional**, do jeito que um usuário usaria, e a cada passo explica **o que está acontecendo e por quê**. Não basta mostrar as telas funcionando.
 
 **Formato**
 
 - **Duração:** 8 a 12 minutos
 - **Tela + a sua voz**, em português. Câmera é opcional
 - Explique **com as suas palavras**. Pode usar um roteiro de tópicos, mas não leia um texto pronto palavra por palavra nem use narração sintética (voz gerada)
-- No início, diga o **hash do commit do código que está gravando**. Um commit depois da gravação que só adiciona o link do vídeo é esperado
-- Link não listado (YouTube, Loom ou Google Drive com acesso por link)
+- Hospede onde preferir (Google Drive, OneDrive, YouTube não listado, Loom…), com **acesso por link**, e envie o link no e-mail de entrega
 
-**Roteiro obrigatório** (nesta ordem; os tempos são referência)
+**O fluxo a seguir** (com o sistema rodando)
 
-| # | Bloco | O que precisa aparecer |
-|---|---|---|
-| 1 | **Fluxo ao vivo** (~5 min) | Com o sistema rodando: login como `SOLICITANTE` → criar uma solicitação → login como `APROVADOR` → aprovar ou rejeitar → ver o status e o histórico. Mostre também **uma transição inválida** (ex.: aprovar uma solicitação cancelada) e a resposta `422`. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, que regra é verificada e o que é gravado no banco |
-| 2 | **Percurso no código** (~4 min) | Siga a requisição de **aprovação** da entrada da API até o banco: autenticação, verificação do papel e do nível de aprovação pelo valor, mudança de estado e gravação do histórico. Mostre **onde fica a regra** que decide o nível (`NIVEL_1`, `NIVEL_2`, `NIVEL_3`) |
-| 3 | **Decisões** (~2 min) | Duas ou três decisões que você tomou (ex.: como modelou as tabelas, como organizou as camadas, como tratou os erros): **o que escolheu e por quê**. Se usou IA, conte em que parte usou e algo que precisou corrigir |
+Login como `SOLICITANTE` → criar uma solicitação → login como `APROVADOR` → aprovar ou rejeitar → ver o status e o histórico. Depois, alguns casos em que o sistema **recusa** a ação.
+
+**Ao longo do fluxo, o vídeo precisa explicar:**
+
+| Tema | O que mostrar e explicar |
+|---|---|
+| **Regras de negócio** | Como o nível de aprovação é definido pelo valor, quem pode aprovar cada nível e quais transições de estado são permitidas |
+| **Detalhes técnicos** | O que cada ação faz por trás: qual endpoint é chamado, onde a regra está no código e o que é gravado no banco e no histórico. Abra o código quando for explicar |
+| **Validações** | Dados inválidos, token ausente, papel sem permissão, aprovador sem o nível necessário. Mostre ao vivo pelo menos um `422` (ex.: aprovar uma solicitação cancelada) |
+| **Decisões de arquitetura** | Como você modelou as tabelas e organizou as camadas do projeto, e **por que** escolheu assim |
+| **Contingências** | O que acontece em situações fora do caminho feliz (ex.: ação em estado final, duas pessoas agindo na mesma solicitação, erro inesperado) e como o sistema responde |
+| **Uso de IA** | Se usou, onde usou e algo que precisou corrigir |
 
 **O que não avaliamos no vídeo:** qualidade de imagem, edição, dicção ou nervosismo. Avaliamos se você **entende e consegue explicar** o que entregou.
 
