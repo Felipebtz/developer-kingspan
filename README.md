@@ -3,9 +3,9 @@
 ## Teste Técnico — Desenvolvedor(a) Fullstack Pleno
 
 > **Stack:** Java (Spring Boot) ou Node.js (NestJS / Express / Fastify) + React (Next.js é aceito) ou Angular
-> **Prazo:** 5 dias corridos a partir do recebimento (esforço estimado: 16–20 h)
+> **Prazo:** 5 dias corridos a partir do recebimento (esforço estimado: 18–22 h, incluindo o vídeo)
 > **Uso de IA:** permitido e esperado, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
-> **Entrega:** fork público no GitHub + vídeo curto (até 10 min) explicando suas decisões
+> **Entrega:** fork público no GitHub + **vídeo de 15 a 25 min** com roteiro obrigatório: arquitetura, fluxo completo ao vivo, percurso no código e decisões (ver [seção 8.1](#81-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-pleno`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 8](#8-instruções-de-entrega))
 
 ---
@@ -351,7 +351,7 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 | **Arquitetura e qualidade de código:** domínio isolado, facilidade de estender regras, legibilidade | 10% |
 | **Front-end:** fluxo completo por papel, `allowedActions`, feedback de erro e de concorrência | 10% |
 | **Execução e entrega:** `docker compose`, CI verde, logs, health check, seed | 5% |
-| **Documentação e decisões:** `SOLUTION.md`, ADRs, vídeo | 5% |
+| **Documentação e decisões:** `SOLUTION.md`, ADRs, clareza do vídeo | 5% |
 | **Uso responsável de IA e histórico de commits:** coerência do registro, `AI_USAGE.md`, commits | 5% |
 
 ### 7.1 Como avaliamos
@@ -359,7 +359,8 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 1. **Auditoria automática** do repositório: arquivos protegidos, registro de IA e trailers dos commits
 2. **Execução:** clonamos o fork, rodamos `docker compose up --build` e os testes, e seguimos o `SOLUTION.md`
 3. **Leitura de código e do histórico de commits**
-4. **Conversa técnica (~45 min) sobre a sua entrega:** você apresenta, nós propomos **uma mudança de regra** para discutir/implementar ao vivo e conversamos sobre trechos do registro de IA. Você precisa explicar e conseguir alterar **qualquer** parte do código entregue, inclusive a que foi gerada por IA
+4. **Vídeo de apresentação** ([seção 8.1](#81-vídeo-de-apresentação-obrigatório)): é **pré-requisito** para a etapa seguinte. Comparamos o que você explica no vídeo com o código entregue, os ADRs e o histórico de commits
+5. **Conversa técnica (~45 min) sobre a sua entrega:** você apresenta, nós propomos **uma mudança de regra** para discutir/implementar ao vivo e conversamos sobre trechos do registro de IA. Você precisa explicar e conseguir alterar **qualquer** parte do código entregue, inclusive a que foi gerada por IA
 
 ### 7.2 O que NÃO será penalizado
 
@@ -375,12 +376,38 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 2. Clone o fork e trabalhe na branch **`teste-pleno`** (`git switch teste-pleno`). **É ela que será avaliada**
 3. **Antes de qualquer outra coisa**, rode `./setup.sh` na raiz do fork (no Windows, pelo **Git Bash**). Ele ativa os hooks de proteção e o registro automático de IA
 4. Crie o código em `backend/` e `frontend/`; documentação em `docs/`; `SOLUTION.md`, `AI_USAGE.md`, `docker-compose.yml`, `.env.example` e `.github/workflows/` na raiz
-5. Grave um **vídeo de até 10 minutos** (link não listado do YouTube, Loom ou Drive) mostrando a solução funcionando e explicando as 3 decisões técnicas mais importantes. Coloque o link no `SOLUTION.md`
+5. Grave o **vídeo de apresentação** seguindo o roteiro obrigatório da [seção 8.1](#81-vídeo-de-apresentação-obrigatório) e coloque o link no `SOLUTION.md`
 6. Responda ao e-mail do convite com o link do fork **dentro do prazo**. O último commit da branch `teste-pleno` antes do prazo é o avaliado
 
 > **Importante:**
 > - Projetos que não sobem com as instruções do `SOLUTION.md` **não são avaliados** além da auditoria.
 > - Repositórios privados não são avaliados.
+> - Entregas **sem o vídeo**, ou com vídeo que não cubra os 6 blocos da seção 8.1, ficam **incompletas** e não seguem para a conversa técnica.
+
+### 8.1 Vídeo de apresentação (obrigatório)
+
+O vídeo é a sua chance de mostrar que **conhece a solução por dentro**: como o sistema opera, como o fluxo inteiro funciona, por que ele foi construído assim e o que acontece em cada passo. Não basta mostrar telas funcionando; **explique o que acontece por trás de cada ação**.
+
+**Formato**
+
+- **Duração:** 15 a 25 minutos. Pode ser editado entre os blocos, desde que cada bloco seja contínuo
+- **Tela + a sua voz**, em português. Câmera é opcional
+- Explique **com as suas palavras**. Um roteiro de tópicos é bem-vindo; ler um texto pronto palavra por palavra ou usar narração sintética (voz gerada) **não** é aceito
+- Grave sobre o **commit final** da branch `teste-pleno` e diga o **hash do commit** no início. Se fizer commits depois da gravação, liste no `SOLUTION.md` o que mudou
+- Link não listado (YouTube, Loom ou Google Drive com acesso por link)
+
+**Roteiro obrigatório** (nesta ordem; os tempos são referência)
+
+| # | Bloco | O que precisa aparecer |
+|---|---|---|
+| 1 | **Arquitetura** (~3 min) | Um diagrama seu (pode ser à mão ou em qualquer ferramenta) com os componentes, as camadas e **onde ficam as regras de domínio**. Como o front, a API, o domínio e o banco se comunicam |
+| 2 | **Fluxo completo ao vivo** (~8 min) | Com o sistema rodando pelo `docker compose`: login como solicitante → criar uma solicitação **acima de R$ 10.000** com itens → submeter → aprovar como `NIVEL_1` → `NIVEL_2` → `ADMIN` → orçamento consumido no dashboard. Depois: devolução para ajuste → edição → reenvio gerando a **v2**, mostrando a v1 preservada. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, quais regras são verificadas, o que é gravado no banco e qual evento entra no histórico. Mostre o banco ou os logs pelo menos uma vez |
+| 3 | **Casos de erro ao vivo** (~3 min) | Autoaprovação, mesmo aprovador em duas etapas, `BUDGET_EXCEEDED`, ação em estado final (`422`) e **conflito de concorrência (`409`)** reproduzido com duas abas ou duas chamadas. Para cada um, diga **em que ponto do código** a regra barra a ação |
+| 4 | **Percurso no código** (~5 min) | Siga uma requisição de **aprovação** da entrada da API até o banco: validação, autorização, máquina de estados, montagem da cadeia, transação/lock, consumo do orçamento e gravação do histórico. Mostre onde está a regra de `SOFTWARE` e explique **como você adicionaria uma regra nova** de aprovação |
+| 5 | **Decisões e trade-offs** (~4 min) | As decisões dos seus ADRs (concorrência, versões e histórico, `403` × `404`, idempotência): **o que você escolheu, quais alternativas considerou, por que descartou** e o que faria diferente com mais tempo |
+| 6 | **Testes e uso de IA** (~3 min) | Rode a suíte de testes. Abra o teste de concorrência e explique **por que ele prova** o comportamento. Conte onde usou IA, **um exemplo concreto em que a IA errou** e como você percebeu, e o que escreveu sem IA |
+
+**O que não avaliamos no vídeo:** qualidade de imagem, edição, dicção ou nervosismo. Avaliamos **clareza e domínio** do que foi construído. Trechos do vídeo serão retomados na conversa técnica.
 
 ---
 
