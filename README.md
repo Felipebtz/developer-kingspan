@@ -20,4 +20,15 @@ Cada nível tem o seu enunciado em uma **branch própria**. Esta branch (`main`)
    ```
 4. Siga o `README.md` da branch. É lá que estão os requisitos, os critérios de avaliação e as regras de uso de IA.
 
+## Fez o fork só com a `main`?
+
+Recupere a branch do seu teste no clone do fork (troque `teste-pleno` por `teste-junior` se for o caso):
+
+```bash
+git remote add upstream https://github.com/kingspanisoeste/developer-challenge.git
+git fetch upstream teste-pleno
+git switch -c teste-pleno upstream/teste-pleno
+git push -u origin teste-pleno
+```
+
 Dúvidas: responda ao e-mail do convite.
