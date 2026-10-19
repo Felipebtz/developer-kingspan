@@ -3,7 +3,7 @@
 ## Teste Técnico — Desenvolvedor(a) Júnior Fullstack
 
 > **Stack:** Java ou Node.js + React ou Angular
-> **Prazo:** 3 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 12–16 h, incluindo o vídeo)
+> **Prazo:** 3 dias corridos a partir do e-mail de convite; a data e o horário limite estão no convite (esforço estimado: 9–12 h, incluindo o vídeo; o escopo foi pensado para quem só tem as noites livres)
 > **Uso de IA:** permitido; o registro é automático e você não precisa marcar nada (ver [seção 9](#9-uso-de-ia--permitido-com-registro-automático))
 > **Vídeo:** obrigatório, de 8 a 12 min, seguindo o fluxo operacional do sistema e explicando regras de negócio, detalhes técnicos, validações, decisões e contingências (ver [seção 7.1](#71-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-junior`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 7](#7-instruções-de-entrega))
@@ -72,8 +72,7 @@ Você foi contratado(a) para construir um sistema interno de gestão de solicita
 ### 2.4 Interface web (front-end)
 
 - Tela de login
-- Dashboard com resumo: totais por status (pendente, aprovada, rejeitada, cancelada), considerando só as solicitações que o usuário pode ver
-- Listagem de solicitações com filtro por status
+- Listagem de solicitações com filtro por status (paginação na tela é opcional; na API é obrigatória)
 - Formulário de criação de solicitação
 - Tela de detalhe mostrando: dados da solicitação, status atual e histórico de ações
 - Botões de ação contextuais (aprovar, rejeitar, cancelar) exibidos apenas para quem tem permissão no estado atual
@@ -183,7 +182,7 @@ CANCELLED → qualquer coisa — BLOQUEADO (estado final)
 
 - **Faça um fork deste repositório** e implemente as funcionalidades dentro do próprio fork — trabalhe preferencialmente em **monorepo** (back-end e front-end na mesma base de código, em pastas separadas)
 - O repositório do fork deve estar **público** para que a equipe avaliadora possa acessá-lo após a entrega
-- `README.md` com instruções claras de como rodar o projeto localmente (dentro de cada pasta: `backend/` e `frontend/`)
+- `README.md` com instruções claras de como rodar o projeto localmente (dentro de cada pasta, `backend/` e `frontend/`, ou um único `backend/README.md` cobrindo os dois)
 - Variáveis de ambiente documentadas com exemplo (`.env.example`)
 - Docker / docker-compose são opcionais, mas valorizados
 
@@ -204,6 +203,7 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
 
 ### 6.1 Diferenciais (não obrigatórios)
 
+- Dashboard com totais por status (pendente, aprovada, rejeitada, cancelada)
 - Testes unitários ou de integração no back-end
 - Docker / docker-compose funcional
 - Paginação e filtros avançados na listagem
@@ -223,7 +223,7 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
    frontend/   ← front-end
    ```
 6. Mantenha o repositório **público** — a equipe avaliadora irá acessá-lo diretamente pelo link, sem necessidade de convite
-7. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`) com:
+7. Inclua um `README.md` **dentro de cada pasta** (`backend/` e `frontend/`), ou um único `backend/README.md` cobrindo os dois, com:
    - Descrição do projeto e decisões técnicas relevantes
    - Pré-requisitos e variáveis de ambiente necessárias (com `.env.example`)
    - Passo a passo para rodar localmente
@@ -284,6 +284,8 @@ Login como `SOLICITANTE` → criar uma solicitação → login como `APROVADOR` 
 2. Implemente a autenticação e os middlewares de autorização
 3. Construa a máquina de estados com testes manuais antes de subir o front-end
 4. Integre o front-end por último, aproveitando a API já validada
+
+> **Se o tempo apertar**, priorize nesta ordem: (1) a API com as regras das seções 2 a 4, especialmente níveis de aprovação e `422`; (2) o fluxo no front (login → criar → aprovar/rejeitar → detalhe com histórico); (3) README e vídeo, que são obrigatórios. Deixe os diferenciais (6.1) para o fim. Uma entrega menor e bem explicada vale mais que uma maior que você não consegue explicar.
 
 ### 8.2 Armadilhas comuns
 
