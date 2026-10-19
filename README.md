@@ -5,6 +5,7 @@
 > **Stack:** Java ou Node.js + React ou Angular
 > **Prazo:** 2 dias corridos
 > **Uso de IA:** permitido, **com registro obrigatório** (ver [seção 9](#9-uso-de-ia--permitido-com-registro-obrigatório))
+> **Vídeo:** obrigatório, de 8 a 12 min, com fluxo ao vivo, percurso no código e decisões (ver [seção 7.1](#71-vídeo-de-apresentação-obrigatório))
 > **Branch deste enunciado:** `teste-junior`. Ao criar o fork, **desmarque** *"Copy the `main` branch only"* (ver [seção 7](#7-instruções-de-entrega))
 
 ---
@@ -219,12 +220,36 @@ A avaliação seguirá os critérios abaixo. A nota final é a média ponderada.
    - Pré-requisitos e variáveis de ambiente necessárias (com `.env.example`)
    - Passo a passo para rodar localmente
    - Exemplos de requisições (curl ou collection Postman/Insomnia)
-7. Envie o link do repositório por e-mail até o prazo informado. O último commit da branch `teste-junior` antes do prazo é o avaliado
+7. Grave o **vídeo de apresentação** seguindo o roteiro da [seção 7.1](#71-vídeo-de-apresentação-obrigatório) e coloque o link no `backend/README.md`
+8. Envie o link do repositório e do vídeo por e-mail até o prazo informado. O último commit da branch `teste-junior` antes do prazo é o avaliado
 
 > **Importante:**
 > - Entregas sem README funcional ou sem instruções suficientes para rodar o projeto serão **desclassificadas**.
 > - Projetos que não compilam ou não inicializam **não serão avaliados**.
 > - Repositórios **privados** não serão avaliados.
+> - Entregas **sem o vídeo**, ou com vídeo que não cubra os 3 blocos da seção 7.1, ficam **incompletas** e não seguem para a próxima etapa.
+
+### 7.1 Vídeo de apresentação (obrigatório)
+
+Queremos ver que você **entende o que construiu**: como o sistema funciona, o que acontece por trás de cada ação e por que você fez desse jeito. Não basta mostrar as telas funcionando.
+
+**Formato**
+
+- **Duração:** 8 a 12 minutos
+- **Tela + a sua voz**, em português. Câmera é opcional
+- Explique **com as suas palavras**. Pode usar um roteiro de tópicos, mas não leia um texto pronto palavra por palavra nem use narração sintética (voz gerada)
+- Grave sobre a versão final do código e diga o **hash do último commit** no início
+- Link não listado (YouTube, Loom ou Google Drive com acesso por link)
+
+**Roteiro obrigatório** (nesta ordem; os tempos são referência)
+
+| # | Bloco | O que precisa aparecer |
+|---|---|---|
+| 1 | **Fluxo ao vivo** (~5 min) | Com o sistema rodando: login como `SOLICITANTE` → criar uma solicitação → login como `APROVADOR` → aprovar ou rejeitar → ver o status e o histórico. Mostre também **uma transição inválida** (ex.: aprovar uma solicitação cancelada) e a resposta `422`. **Em cada passo, diga o que acontece por trás:** qual endpoint é chamado, que regra é verificada e o que é gravado no banco |
+| 2 | **Percurso no código** (~4 min) | Siga a requisição de **aprovação** da entrada da API até o banco: autenticação, verificação do papel e do nível de aprovação pelo valor, mudança de estado e gravação do histórico. Mostre **onde fica a regra** que decide o nível (`NIVEL_1`, `NIVEL_2`, `NIVEL_3`) |
+| 3 | **Decisões** (~2 min) | Duas ou três decisões que você tomou (ex.: como modelou as tabelas, como organizou as camadas, como tratou os erros): **o que escolheu e por quê**. Se usou IA, conte em que parte usou e algo que precisou corrigir |
+
+**O que não avaliamos no vídeo:** qualidade de imagem, edição, dicção ou nervosismo. Avaliamos se você **entende e consegue explicar** o que entregou.
 
 ---
 
