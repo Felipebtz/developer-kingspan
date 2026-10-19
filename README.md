@@ -68,7 +68,7 @@ Você decide a modelagem, mas o sistema precisa representar pelo menos: **usuár
 
 - Campos: `title`, `description`, `category`, `costCenterId` (padrão = o do solicitante), `neededBy` (data opcional, que precisa ser futura) e `items[]` (`description`, `quantity` inteiro > 0, `unitPrice` > 0)
 - `category` é um enum: `EQUIPMENT | SERVICES | SUPPLIES | TRAVEL | SOFTWARE | OTHER`
-- O **valor total é calculado no back-end**: cada item = `quantity × unitPrice`, arredondado para 2 casas (HALF_UP); o total é a soma dos itens. Moeda: BRL. O valor enviado pelo cliente é ignorado
+- O **valor total é calculado no back-end**: cada item = `quantity × unitPrice`, e o total é a soma dos itens. Moeda: BRL. O valor enviado pelo cliente é ignorado. **Como representar, armazenar e arredondar valores monetários fica a seu critério**
 - A solicitação nasce como `DRAFT`. Ela só pode ser editada em `DRAFT` ou `CHANGES_REQUESTED`, e só pelo dono
 - Listagem com paginação, ordenação e filtros: `status`, `category`, `costCenterId`, `createdFrom`, `createdTo` (outros filtros são diferenciais)
 - Visibilidade: o `SOLICITANTE` vê as próprias solicitações; o `APROVADOR` vê as do seu centro de custo; o `ADMIN` vê todas. **Rascunhos (`DRAFT`) só são visíveis para o dono**
@@ -167,11 +167,13 @@ A documentação **OpenAPI** deve ficar disponível na aplicação (ex.: `/docs`
 - **`409`**: conflito de concorrência (`lockVersion` desatualizado) ou `Idempotency-Key` reutilizada com payload diferente
 - **`422`**: regra de negócio violada, com `code` específico, por exemplo `INVALID_TRANSITION`, `SELF_APPROVAL_FORBIDDEN`, `APPROVER_NOT_ELIGIBLE`, `DUPLICATE_APPROVER`, `BUDGET_EXCEEDED`, `BUDGET_BELOW_CONSUMED`, `COMMENT_REQUIRED`
 - **Paginação:** `?page=0&size=20&sort=createdAt,desc` → `{ "data": [...], "page": 0, "size": 20, "totalElements": 135, "totalPages": 7 }`
-- **Datas** em ISO 8601 com fuso; **valores monetários** como string decimal (`"15000.00"`) ou inteiro em centavos. Escolha um, documente e use em todo lugar
+- **Datas** em ISO 8601 com fuso
 - **Concorrência:** toda ação de transição (`submit`, `approve`, `reject`, `request-changes`, `cancel`) exige o `lockVersion` atual (no corpo, ou via `If-Match`/`ETag`). Valor divergente → `409`. **Não confunda** o `lockVersion` (controle de concorrência, muda a cada alteração) com a **versão** da solicitação (v1, v2…, muda só no reenvio, seção 2.3)
 - **Idempotência:** `POST /requests` com o mesmo `Idempotency-Key`, do mesmo usuário e com o mesmo payload, devolve **a mesma resposta** sem criar outra solicitação (validade mínima: 24 h)
 
 ### 3.3 Exemplos
+
+> Os exemplos são ilustrativos: o formato dos campos, inclusive o dos valores monetários, é decisão sua.
 
 ```http
 POST /requests
@@ -276,7 +278,6 @@ stateDiagram-v2
 - Java (Spring Boot) ou Node.js (NestJS / Express / Fastify), com banco **relacional** (PostgreSQL recomendado)
 - **Migrations versionadas** (Flyway, Liquibase, Prisma, TypeORM, Knex…) e **seed** automático (ver 5.4)
 - **Regras de domínio isoladas** de HTTP e ORM: a máquina de estados e a montagem da cadeia de aprovação devem ser testáveis sem subir servidor ou banco
-- Dinheiro em tipo decimal (`BigDecimal` / `numeric` / centavos inteiros). **Nunca ponto flutuante**
 - Datas gravadas em UTC
 - Transações explícitas nas transições. Controle de concorrência **otimista ou pessimista**, à sua escolha, **justificada em ADR**
 - Logs estruturados (JSON) com `X-Request-Id` (gerado quando não vier na requisição e devolvido na resposta)
@@ -353,7 +354,7 @@ Não são obrigatórios. Escolha poucos e faça bem; profundidade vale mais que 
 | Critério | Peso |
 |----------|------|
 | **Domínio e máquina de estados:** cadeia de aprovação, segregação de funções, versões, orçamento e mensagens `422` | 25% |
-| **Consistência e dados:** modelagem, transações, concorrência, idempotência, dinheiro em decimal | 15% |
+| **Consistência e dados:** modelagem, transações, concorrência, idempotência | 15% |
 | **Testes automatizados:** cobertura das regras, integração com banco real, teste de concorrência | 15% |
 | **API:** contrato, OpenAPI, padrão de erros, paginação/filtros, códigos HTTP corretos | 10% |
 | **Arquitetura e qualidade de código:** domínio isolado, facilidade de estender regras, legibilidade | 10% |
