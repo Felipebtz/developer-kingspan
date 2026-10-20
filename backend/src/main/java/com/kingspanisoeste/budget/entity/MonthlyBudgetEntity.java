@@ -1,5 +1,5 @@
 
-package com.kingspanisoeste.entity;
+package com.kingspanisoeste.budget.entity;
 
 import jakarta.persistence.*;
 

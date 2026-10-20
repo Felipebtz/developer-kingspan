@@ -1,11 +1,12 @@
 
-package com.kingspanisoeste.entity;
+package com.kingspanisoeste.budget.entity;
 
-import com.kingspanisoeste.enums.CostCenterStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.Objects;
+
+import com.kingspanisoeste.budget.entity.enums.CostCenterStatus;
 
 @Entity
 @Table(name = "cost_centers", schema = "public")

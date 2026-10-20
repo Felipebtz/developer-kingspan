@@ -1,9 +1,11 @@
 
-package com.kingspanisoeste.entity;
+package com.kingspanisoeste.auth.entity;
 
-import com.kingspanisoeste.enums.ApproverLevel;
-import com.kingspanisoeste.enums.UserRole;
-import com.kingspanisoeste.enums.UserStatus;
+import com.kingspanisoeste.auth.entity.enums.ApproverLevel;
+import com.kingspanisoeste.auth.entity.enums.UserRole;
+import com.kingspanisoeste.auth.entity.enums.UserStatus;
+import com.kingspanisoeste.budget.entity.CostCenterEntity;
+
 
 import jakarta.persistence.*;
 

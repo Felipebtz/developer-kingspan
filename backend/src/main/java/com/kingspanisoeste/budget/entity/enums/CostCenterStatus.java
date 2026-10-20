@@ -1,4 +1,4 @@
-package com.kingspanisoeste.enums;
+package com.kingspanisoeste.budget.entity.enums;
 
 public enum CostCenterStatus {
     ACTIVE,
