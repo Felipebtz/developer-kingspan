@@ -119,3 +119,9 @@ Crescimento organizacional que justifique autonomia de equipes por domínio.
 Integrações ou cargas assíncronas que se beneficiem claramente de execução isolada.
 
 A extração deverá começar preferencialmente por funcionalidades com limites transacionais bem definidos e baixo acoplamento ao núcleo financeiro.
+
+# decisões
+após a modelagem da entidades principais, e o desenvolvimento dos respository, os models, e o inicio dos dtos, quero seguir com uma metodologia mais sofisticada com o que precisamos entregar que é o TDD, então na criação do registro e também pensando na manutenção do código e até mesmo um possivel uso de agentes, quero escrever o sinal vermelho um teste que irá falhar, que eu quero propositalmente que ele falhe , verde uma código simples que implementado ele funcione, e o amarelo que é a refatoração onde irei escrever melhor com um código mais limpo e sofisticado sem perde o determinado comportamento.
+
+com isso creio que posso impedir um dos maiores gargalhos da engenhaira moderna que é a regressão em funções já validadas, seja essa regressão causada por um novo membro ou por um junior,pleno até mesmo um senior novo no negócio.
+

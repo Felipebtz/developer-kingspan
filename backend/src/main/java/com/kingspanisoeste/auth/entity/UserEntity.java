@@ -36,7 +36,7 @@ public class UserEntity {
     private  UserRole role = UserRole.SOLICITANTE;
 
     @Enumerated(EnumType.STRING)
-    @Column (name = "approver_level", nullable = false, length = 20)
+    @Column (name = "approver_level", length = 20)
     private ApproverLevel approverLevel;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,10 +55,10 @@ public class UserEntity {
 
     //JPA
 
-    protected UserEntity() {
+    public  UserEntity() {
 
     }
-
+    //Solicitante
     public UserEntity(String name, String email, String passwordHash, CostCenterEntity costCenterEntity)
     {
         this.name = Objects.requireNonNull(name);
@@ -71,6 +71,27 @@ public class UserEntity {
         this.status = UserStatus.PENDING_APPROVAL;
         this.approverLevel = null;
     }
+
+    //ADMIN
+    public static  UserEntity createAdmin(String name, String email,String passwordHash){
+        UserEntity admin = new UserEntity();
+
+        admin.name = Objects.requireNonNull(name).trim();
+        admin.email = Objects.requireNonNull(email).trim().toLowerCase(Locale.ROOT);
+         admin.passwordHash = Objects.requireNonNull(passwordHash);
+         if (admin.name.isBlank() || admin.email.isBlank()) {
+        throw new IllegalArgumentException(
+            "Nome e email são obrigatórios."
+        );
+    }
+        admin.role = UserRole.ADMIN;
+            admin.status = UserStatus.ACTIVE;
+            admin.approverLevel = null;
+            admin.costCenterEntity = null;
+
+            return admin;
+        }
+    
 
     @PrePersist 
     protected void onCreate() {

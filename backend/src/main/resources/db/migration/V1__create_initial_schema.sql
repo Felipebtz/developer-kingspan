@@ -58,6 +58,7 @@ CREATE TABLE public.users (
 
     name VARCHAR(150) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    
     password_hash VARCHAR(255) NOT NULL,
 
     role VARCHAR(30) NOT NULL DEFAULT 'SOLICITANTE',
