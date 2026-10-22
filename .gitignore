@@ -1,4 +1,7 @@
-# Dependências e builds
+
+# ==========================================
+# DEPENDÊNCIAS E BUILDS
+# ==========================================
 node_modules/
 dist/
 build/
@@ -8,20 +11,80 @@ target/
 .angular/
 .gradle/
 coverage/
-*.log
 
-# Ambiente (nunca commitar segredos)
+# Java / Maven
+*.class
+*.jar
+*.war
+*.ear
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# ==========================================
+# AMBIENTE E SEGREDOS
+# ==========================================
 .env
 .env.*
 !.env.example
 
-# IDEs e sistema operacional
+.envrc
+.direnv/
+
+# Configurações locais do Spring Boot
+application-local.properties
+application-local.yml
+application-local.yaml
+application-*.local.properties
+application-*.local.yml
+application-*.local.yaml
+application-secrets.*
+
+# Credenciais e chaves privadas
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+
+# ==========================================
+# LOGS E ARQUIVOS TEMPORÁRIOS
+# ==========================================
+*.log
+*.log.*
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# ==========================================
+# IDEs
+# ==========================================
 .idea/
 *.iml
+
 .vscode/*
 !.vscode/extensions.json
+
+.settings/
+.classpath
+.project
+.factorypath
+
+# ==========================================
+# SISTEMA OPERACIONAL
+# ==========================================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Configurações pessoais de agentes de IA
+# ==========================================
+# AGENTES DE IA - CONFIGURAÇÕES LOCAIS
+# ==========================================
 .claude/settings.local.json
