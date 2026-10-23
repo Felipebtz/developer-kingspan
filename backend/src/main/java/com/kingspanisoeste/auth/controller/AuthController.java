@@ -2,21 +2,23 @@ package com.kingspanisoeste.auth.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
+import com.kingspanisoeste.auth.dto.AuthMeResponseDTO;
 import com.kingspanisoeste.auth.dto.CreateUserRequestDTO;
 import com.kingspanisoeste.auth.dto.CreateUserResponseDTO;
 import com.kingspanisoeste.auth.dto.LoginRequestDTO;
 import com.kingspanisoeste.auth.dto.LoginResponseDTO;
 import com.kingspanisoeste.auth.entity.UserEntity;
-import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.auth.service.UserService;
 
 import jakarta.validation.Valid;
-
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PostMapping;
 
 
 @RestController 
@@ -30,6 +32,11 @@ public class AuthController {
 
       public AuthController(UserService userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<AuthMeResponseDTO> me(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(userService.getAutheticatedUser(jwt.getSubject()));
     }
     //login
     @PostMapping ("/login")

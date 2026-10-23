@@ -1,29 +1,26 @@
 package com.kingspanisoeste.auth.service;
 
-
-import java.util.List;
 import java.util.Locale;
-
-import javax.management.RuntimeErrorException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.kingspanisoeste.auth.dto.AuthMeResponseDTO;
 import com.kingspanisoeste.auth.dto.CreateUserRequestDTO;
 import com.kingspanisoeste.auth.dto.CreateUserResponseDTO;
 import com.kingspanisoeste.auth.dto.LoginRequestDTO;
 import com.kingspanisoeste.auth.dto.LoginResponseDTO;
 import com.kingspanisoeste.auth.entity.UserEntity;
-import com.kingspanisoeste.auth.entity.enums.UserRole;
 import com.kingspanisoeste.auth.entity.enums.UserStatus;
 import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.budget.entity.CostCenterEntity;
 import com.kingspanisoeste.budget.repository.CostCenterRepository;
-import com.kingspanisoeste.config.JwtConfig;
 
-import jakarta.transaction.Transactional;
+import com.kingspanisoeste.auth.service.TokenService;
+
 @Service 
 
 public class UserService { 
@@ -71,6 +68,7 @@ public UserEntity create(CreateUserRequestDTO request) {
 
     return userRepository.save(user);
 }
+//LOGIN JWT
 public LoginResponseDTO login(LoginRequestDTO request) {
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -103,5 +101,36 @@ public LoginResponseDTO login(LoginRequestDTO request) {
         );
 
         return new LoginResponseDTO(token, userDto);
+    }
+    //definir quais info vao poder ser enviadas ao front end
+  @Transactional(readOnly = true)
+    public AuthMeResponseDTO getAutheticatedUser(String subject) {
+        final Long userId;
+
+        try {
+            
+            userId = Long.valueOf(subject);
+        } catch (NumberFormatException | NullPointerException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida");
+        }
+        
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> 
+            new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida")
+        );
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida");
+        }
+
+       
+        return new AuthMeResponseDTO(
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole(),
+            user.getStatus(),
+            user.getCostCenterEntity() == null ? null : user.getCostCenterEntity().getId(),
+            user.getApproverLevel()
+        );
     }
 }
