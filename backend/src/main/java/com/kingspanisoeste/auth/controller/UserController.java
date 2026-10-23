@@ -8,13 +8,14 @@ import com.kingspanisoeste.auth.dto.CreateUserRequestDTO;
 import com.kingspanisoeste.auth.entity.UserEntity;
 import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.auth.service.UserService;
+import org.springframework.web.bind.annotation.RequestBody;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
+
 import org.springframework.web.bind.annotation.PostMapping;
 
 
 @RestController 
-@RequestMapping("/auth/register")
+@RequestMapping("/users")
 
 
 public class UserController {
@@ -27,7 +28,7 @@ public class UserController {
     }
 
 
-    @PostMapping("create")
+    @PostMapping 
     public ResponseEntity<UserEntity> create(@RequestBody CreateUserRequestDTO request){
         UserEntity user = userService.create(request);
         return ResponseEntity.ok(user);

@@ -72,6 +72,20 @@ public class UserEntity {
         this.approverLevel = null;
     }
 
+    //Aprovador
+    public UserEntity(String name, String email, String passwordHash, CostCenterEntity costCenterEntity, ApproverLevel approverLevel)
+    {
+        this.name = Objects.requireNonNull(name);
+        this.email = Objects.requireNonNull(email)
+        .trim()
+        .toLowerCase(Locale.ROOT);
+        this.passwordHash = Objects.requireNonNull(passwordHash);
+        this.costCenterEntity = Objects.requireNonNull(costCenterEntity);
+        this.role = UserRole.APROVADOR;
+        this.status = UserStatus.ACTIVE;
+        this.approverLevel = approverLevel;
+    }
+
     //ADMIN
     public static  UserEntity createAdmin(String name, String email,String passwordHash){
         UserEntity admin = new UserEntity();

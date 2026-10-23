@@ -6,4 +6,6 @@ import com.kingspanisoeste.budget.entity.CostCenterEntity;
 
 public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long>{
     
+
+    
 }
