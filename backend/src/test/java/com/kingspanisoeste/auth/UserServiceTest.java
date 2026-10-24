@@ -69,7 +69,7 @@ class UserServiceTest {
         assertEquals(UserStatus.PENDING_APPROVAL, result.getStatus());
         assertNull(result.getApproverLevel());
         
-        // VERIFY
+        
         verify(userRepository).existsByEmailIgnoreCase("felipe@email.com");
         verify(costCenterRepository).findById(1L);
         verify(encoder).encode("Senha123!");
