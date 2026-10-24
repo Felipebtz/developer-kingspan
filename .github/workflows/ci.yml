@@ -1,0 +1,87 @@
+
+name: CI - Kingspan Isoeste
+
+on:
+  push:
+    branches: [teste-pleno]
+  pull_request:
+    branches: [teste-pleno]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend - build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: '55432'
+      DB_NAME: kingspan_ci
+      DB_USER: kingspan_ci
+      DB_PASSWORD: kingspan_ci
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:55432/kingspan_ci
+      SPRING_DATASOURCE_USERNAME: kingspan_ci
+      SPRING_DATASOURCE_PASSWORD: kingspan_ci
+
+      APP_ADMIN_BOOTSTRAP_ENABLED: 'false'
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: kingspan_ci
+          POSTGRES_USER: kingspan_ci
+          POSTGRES_PASSWORD: kingspan_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kingspan_ci -d kingspan_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 e cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Criar segredo JWT temporario para os testes
+        shell: bash
+        run: echo "JWT_SECRET_BASE64=$(openssl rand -base64 48 | tr -d '\n')" >> "$GITHUB_ENV"
+
+      - name: Conferir ferramentas
+        run: |
+          java -version
+          docker --version
+
+      - name: Build e testes (Wrapper se existir)
+        shell: bash
+        working-directory: backend
+        run: |
+          if [ -f ./mvnw ]; then
+            bash ./mvnw -B -ntp clean verify
+          else
+            mvn -B -ntp clean verify
+          fi
+
+      - name: Publicar relatorios de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/**
+            backend/target/failsafe-reports/**
+          if-no-files-found: ignore
