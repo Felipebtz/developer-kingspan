@@ -41,26 +41,31 @@ public class AdminUserService {
             .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Usuário não encontrado."));
 
         if (user.getStatus() == UserStatus.ACTIVE) {
-            throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_TRANSITION", "O usuário já está ativo.");
+            throw new BusinessException(HttpStatus.UNPROCESSABLE_CONTENT, "INVALID_TRANSITION", "O usuário já está ativo.");
         }
 
         validateRoleAndLevel(request.role(), request.approverLevel());
 
         CostCenterEntity costCenter = null;
-        if (request.costCenterId() != null) {
-            costCenter = costCenterRepository.findById(request.costCenterId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_COST_CENTER", "Centro de custo inexistente."));
-        } else if (request.role() != UserRole.ADMIN) {
-            throw new BusinessException(HttpStatus.UNPROCESSABLE_CONTENT, "COST_CENTER_REQUIRED", "Centro de custo é obrigatório para não-administradores.");
+        if (request.costCenterId() == null && request.role() !=UserRole.ADMIN) {
+
+              throw new BusinessException(HttpStatus.BAD_REQUEST, "COST_CENTER_REQUIRED", "Centro de custo é obrigatório ");
         }
 
-        user.setRole(request.role());
-        user.setApproverLevel(request.approverLevel());
-        user.setCostCenterEntity(costCenter);
-        user.setStatus(UserStatus.ACTIVE);
+        if(request.costCenterId() != null){
+            costCenter = costCenterRepository.findById(request.costCenterId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "COST_CENTER_NOT_FOUND", "Centro de custo inexistente."));
+        }      
 
-        return mapToDTO(userRepository.save(user));
-    }
+            user.setRole(request.role());
+            user.setApproverLevel(request.approverLevel());
+            user.setCostCenterEntity(costCenter);
+            user.setStatus(UserStatus.ACTIVE);
+
+            UserEntity savedUser = userRepository.save(user);
+
+            return mapToDTO(savedUser);
+}
 
     private void validateRoleAndLevel(UserRole role, ApproverLevel level) {
 
