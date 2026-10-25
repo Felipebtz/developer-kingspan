@@ -133,6 +133,28 @@ public class MonthlyBudgetEntity {
         return allocatedAmount.subtract(consumedAmount);
     }
 
+    public void consume(BigDecimal amount) {
+        Objects.requireNonNull(amount, "Valor de consumo obrigatório");
+
+        BigDecimal normalized = amount.setScale(
+            2, RoundingMode.UNNECESSARY
+        );
+
+        if (normalized.signum() <= 0) {
+            throw new IllegalArgumentException(
+                "O valor consumido deve ser positivo"
+            );
+        }
+
+        if (getAvailableAmount().compareTo(normalized) < 0) {
+            throw new IllegalStateException(
+                "Saldo orçamentário insuficiente"
+            );
+        }
+
+        consumedAmount = consumedAmount.add(normalized);
+    }
+
     public Long getId() {
         return id;
     }

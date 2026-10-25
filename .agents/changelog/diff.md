@@ -35,3 +35,68 @@ One block per agent turn, one row per changed file:
 ## Change log
 
 <!-- AI agent entries will be inserted below this line -->
+
+---
+### Turn 2026-10-24 22:19:36 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Run Gate A.1 minimal baseline fixes and verify Maven, Docker, and Flyway.
+- **Summary**: Added missing imports required to compile the purchase request baseline.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/repository/PurchaseRequestAuditRepository.java` | modified | +8 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/dto/SubmitPurchaseRequestDTO.java` | modified | +3 | -0 |
+
+---
+### Turn 2026-10-24 22:58:27 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Run Gate A.2 final backend stabilization and validate the isolated PostgreSQL database.
+- **Summary**: Added a Jackson 2 compatibility bean and validated tests, authentication, idempotency, and isolated PostgreSQL migrations.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/config/Jackson2Config.java` | created | +19 | -0 |
+
+---
+### Turn 2026-10-24 23:27:19 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Implement Gates B and C with approval decisions, transactional budget consumption, REST endpoints, and PostgreSQL validation.
+- **Summary**: Implemented transactional approval decisions, sequential authorization, budget locking, REST endpoints, and validated concurrency on PostgreSQL.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/budget/entity/MonthlyBudgetEntity.java` | modified | +22 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/repository/MonthlyBudgetRepository.java` | modified | +22 | -5 |
+| `backend/src/main/java/com/kingspanisoeste/budget/service/BudgetService.java` | created | +53 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/controller/ApprovalController.java` | created | +95 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestPolicy.java` | modified | +176 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/dto/ApprovalDecisionDTO.java` | created | +9 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/dto/CancelPurchaseRequestDTO.java` | created | +8 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/entity/PurchaseRequestAuditEntity.java` | modified | +60 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/entity/PurchaseRequestEntity.java` | modified | +45 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/repository/ApprovalStepRepository.java` | modified | +6 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/repository/PurchaseRequestRepository.java` | modified | +11 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/service/ApprovalService.java` | created | +349 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestAuditService.java` | modified | +30 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/shared/exception/GlobalExceptionHandler.java` | modified | +25 | -1 |
+
+---
+### Turn 2026-10-24 23:41:46 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Complete SPEC 07 by adding the six required unit test suites and focused approval and budget tests.
+- **Summary**: Added six required purchase request unit test suites plus focused approval and budget service tests.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/test/java/com/kingspanisoeste/budget/service/BudgetServiceTest.java` | created | +99 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/ApprovalFlowFactoryTest.java` | created | +71 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/PurchaseAmountCalculatorTest.java` | created | +68 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestPolicyTest.java` | created | +141 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestValidatorTest.java` | created | +115 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/ApprovalServiceTest.java` | created | +151 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestServiceTest.java` | created | +214 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/SubmitPurchaseRequestServiceTest.java` | created | +181 | -0 |

@@ -196,6 +196,10 @@ public class UserEntity {
     public CostCenterEntity getCostCenterEntity() {
         return costCenterEntity;
     }
+    
+    public Long getCostCenterId() {
+    return costCenterEntity == null ? null : costCenterEntity.getId();
+}
 
     public void setCostCenterEntity(CostCenterEntity costCenterEntity) {
         this.costCenterEntity = costCenterEntity;
