@@ -34,15 +34,12 @@ export const authSlice = createSlice({
       state.erro = null;
     },
 
-    loginSucceeded(
-      state,
-      action: PayloadAction<LoginResponseDTO>
-    ) {
-      state.user = action.payload.user;
-      state.accessToken = action.payload.token;
-      state.status = "pending";
-      state.erro = null;
-    },
+   loginSucceeded(state, action: PayloadAction<LoginResponseDTO>) {
+  state.user = action.payload.user;
+  state.accessToken = action.payload.token;
+  state.status = "succeeded";
+  state.erro = null;
+},
 
     restoreToken(
       state,

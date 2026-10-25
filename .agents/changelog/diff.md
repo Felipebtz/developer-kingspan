@@ -176,3 +176,34 @@ One block per agent turn, one row per changed file:
 | `frontend/hooks/use-mobile.ts` | modified | +9 | -12 |
 | `frontend/next.config.ts` | modified | +1 | -0 |
 | `frontend/package.json` | modified | +4 | -1 |
+
+---
+### Turn 2026-10-25 16:04:12 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Fix frontend request action imports and duplicate status type import
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/budget/dto/CostCenterResponseDTO.java` | created | +0 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/dto/CreateCostCenterDTO.java` | created | +0 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/dto/CreateMonthlyBudgetDTO.java` | modified | +9 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/dto/MonthlyBudgetResponseDTO.java` | created | +13 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/dto/UpdateMonthlyBudgetDTO.java` | created | +7 | -0 |
+| `frontend/app/dashboard/requests/[id]/edit/page.tsx` | modified | +1 | -1 |
+| `frontend/app/dashboard/requests/[id]/page.tsx` | modified | +1 | -1 |
+| `frontend/app/dashboard/requests/new/page.tsx` | modified | +1 | -1 |
+| `frontend/app/dashboard/requests/page.tsx` | modified | +0 | -1 |
+| `frontend/tsconfig.tsbuildinfo` | modified | +1 | -1 |
+
+---
+### Turn 2026-10-25 16:12:29 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Add the missing List import to MonthlyBudgetRepository and verify compilation
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/budget/repository/MonthlyBudgetRepository.java` | modified | +1 | -0 |

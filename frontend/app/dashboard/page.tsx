@@ -1,4 +1,6 @@
 
+"use client";
+
 import Link from "next/link";
 
 import {
@@ -9,64 +11,8 @@ import {
   Eye,
 } from "lucide-react";
 
-type RequestStatus =
-  | "DRAFT"
-  | "IN_APPROVAL"
-  | "APPROVED"
-  | "REJECTED";
-
-type PurchaseRequest = {
-  id: number;
-  title: string;
-  category: string;
-  date: string;
-  amount: number;
-  status: RequestStatus;
-};
-
-// Dados fictícios para demonstração visual
-const requests: PurchaseRequest[] = [
-  {
-    id: 1042,
-    title: "Computadores para equipe",
-    category: "Equipamentos",
-    date: "24/10/2026",
-    amount: 6800,
-    status: "IN_APPROVAL",
-  },
-  {
-    id: 1041,
-    title: "Licenças de software",
-    category: "Software",
-    date: "23/10/2026",
-    amount: 2450,
-    status: "IN_APPROVAL",
-  },
-  {
-    id: 1040,
-    title: "Materiais de manutenção",
-    category: "Manutenção",
-    date: "22/10/2026",
-    amount: 980,
-    status: "DRAFT",
-  },
-  {
-    id: 1039,
-    title: "Serviço de calibração",
-    category: "Serviços",
-    date: "20/10/2026",
-    amount: 1400,
-    status: "APPROVED",
-  },
-  {
-    id: 1038,
-    title: "Materiais de escritório",
-    category: "Materiais",
-    date: "18/10/2026",
-    amount: 720,
-    status: "REJECTED",
-  },
-];
+import { useRequests } from "@/lib/hooks/useRequests";
+import type { RequestStatus } from "@/lib/api/requests";
 
 const statusConfig: Record<
   RequestStatus,
@@ -76,9 +22,13 @@ const statusConfig: Record<
     label: "Rascunho",
     color: "text-[#111827]",
   },
-  IN_APPROVAL: {
+  PENDING_APPROVAL: {
     label: "Em aprovação",
     color: "text-[#A16207]",
+  },
+  CHANGES_REQUESTED: {
+    label: "Alterações solicitadas",
+    color: "text-[#9333EA]",
   },
   APPROVED: {
     label: "Aprovada",
@@ -88,6 +38,19 @@ const statusConfig: Record<
     label: "Rejeitada",
     color: "text-[#DC2626]",
   },
+  CANCELLED: {
+    label: "Cancelada",
+    color: "text-slate-500",
+  },
+};
+
+const categoryLabels: Record<string, string> = {
+  EQUIPMENT: "Equipamentos",
+  SERVICES: "Serviços",
+  SUPPLIES: "Materiais",
+  TRAVEL: "Viagens",
+  SOFTWARE: "Software",
+  OTHER: "Outros",
 };
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -96,6 +59,8 @@ const currency = new Intl.NumberFormat("pt-BR", {
 });
 
 export default function DashboardPage() {
+  const { requests, loading, error } = useRequests();
+
   const stats = [
     {
       title: "Rascunhos",
@@ -108,7 +73,7 @@ export default function DashboardPage() {
     {
       title: "Em aprovação",
       value: requests.filter(
-        (request) => request.status === "IN_APPROVAL"
+        (request) => request.status === "PENDING_APPROVAL"
       ).length,
       Icon: Clock3,
       color: "text-[#A16207]",
@@ -122,6 +87,8 @@ export default function DashboardPage() {
       color: "text-[#004289]",
     },
   ];
+
+  const recentRequests = requests.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -162,7 +129,7 @@ export default function DashboardPage() {
             </div>
 
             <p className={`mt-3 text-3xl font-semibold ${color}`}>
-              {value}
+              {loading || error ? "—" : value}
             </p>
           </div>
         ))}
@@ -221,73 +188,108 @@ export default function DashboardPage() {
             </thead>
 
             <tbody>
-              {requests.map((request, index) => {
-                const status = statusConfig[request.status];
-
-                return (
-                  <tr
-                    key={request.id}
-                    className={`border-b border-slate-200 transition-colors hover:bg-blue-50 ${
-                      index % 2 === 0
-                        ? "bg-white"
-                        : "bg-[#F5F7FA]"
-                    }`}
+              {loading && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-slate-500"
                   >
-                    {/* SOLICITAÇÃO */}
-                    <td className="px-5 py-4">
-                      <p className="font-medium text-slate-800">
-                        {request.title}
-                      </p>
+                    Carregando solicitações...
+                  </td>
+                </tr>
+              )}
 
-                      <span className="text-xs text-slate-500">
-                        #{request.id}
-                      </span>
-                    </td>
+              {!loading && error && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    role="alert"
+                    className="px-5 py-10 text-center text-red-600"
+                  >
+                    {error}
+                  </td>
+                </tr>
+              )}
 
-                    {/* CATEGORIA */}
-                    <td className="px-5 py-4 text-slate-700">
-                      {request.category}
-                    </td>
+              {!loading &&
+                !error &&
+                recentRequests.map((request, index) => {
+                  const status = statusConfig[request.status];
 
-                    {/* DATA */}
-                    <td className="px-5 py-4 text-slate-700">
-                      {request.date}
-                    </td>
+                  return (
+                    <tr
+                      key={request.id}
+                      className={`border-b border-slate-200 transition-colors hover:bg-blue-50 ${
+                        index % 2 === 0
+                          ? "bg-white"
+                          : "bg-[#F5F7FA]"
+                      }`}
+                    >
+                      <td className="px-5 py-4">
+                        <p className="font-medium text-slate-800">
+                          {request.title}
+                        </p>
 
-                    {/* VALOR */}
-                    <td className="px-5 py-4 font-medium text-slate-800">
-                      {currency.format(request.amount)}
-                    </td>
+                        <span className="text-xs text-slate-500">
+                          #{request.id}
+                        </span>
+                      </td>
 
-                    {/* STATUS */}
-                    <td className="px-5 py-4">
-                      <span
-                        className={`font-semibold ${status.color}`}
-                      >
-                        {status.label}
-                      </span>
-                    </td>
+                      <td className="px-5 py-4 text-slate-700">
+                        {categoryLabels[request.category] ??
+                          request.category}
+                      </td>
 
-                    {/* AÇÕES */}
-                    <td className="px-5 py-4 text-center">
-                      <Link
-                        href={`/dashboard/requests/${request.id}`}
-                        className="inline-flex h-8 items-center gap-2 rounded bg-[#004289] px-3 text-xs font-medium text-white hover:bg-[#003670]"
-                      >
-                        <Eye className="size-3.5" />
-                        Visualizar
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <td className="px-5 py-4 text-slate-700">
+                        {request.date}
+                      </td>
+
+                      <td className="px-5 py-4 font-medium text-slate-800">
+                        {request.amount === null
+                          ? "—"
+                          : currency.format(request.amount)}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span className={`font-semibold ${status.color}`}>
+                          {status.label}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-center">
+                        <Link
+                          href={`/dashboard/requests/${request.id}`}
+                          className="inline-flex h-8 items-center gap-2 rounded bg-[#004289] px-3 text-xs font-medium text-white hover:bg-[#003670]"
+                        >
+                          <Eye className="size-3.5" />
+                          Visualizar
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+              {!loading && !error && recentRequests.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-10 text-center text-slate-500"
+                  >
+                    Nenhuma solicitação cadastrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* RODAPÉ DA TABELA */}
+        {/* RODAPÉ */}
         <div className="border-t border-slate-200 bg-white px-5 py-3 text-xs text-slate-500">
-          Exibindo {requests.length} solicitações · Dados demonstrativos
+          {loading
+            ? "Carregando dados..."
+            : error
+              ? "Não foi possível carregar os dados."
+              : `Exibindo ${recentRequests.length} solicitações carregadas`}
         </div>
       </div>
     </div>

@@ -3,7 +3,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
   Sidebar,
@@ -34,20 +35,23 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 
+import {
+  logout,
+  type AuthState,
+} from "@/lib/redux/auth/authSlice";
+
+import type { AuthUser } from "@/lib/api/auth";
+
 type UserRole = "SOLICITANTE" | "APROVADOR" | "ADMIN";
 
-// Usuário fictício para testar o frontend
-const DEMO_USER: {
-  fullName: string;
-  email: string;
-  role: UserRole;
-} = {
-  fullName: "Usuário Solicitante",
-  email: "solicitante@exemplo.com",
-  role: "ADMIN",
+type NavItem = {
+  href: string;
+  label: string;
+  Icon: typeof LayoutDashboard;
+  roles: UserRole[];
 };
 
-const SIDEBAR_NAV = [
+const SIDEBAR_NAV: NavItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
@@ -98,20 +102,79 @@ const SIDEBAR_NAV = [
   },
 ];
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return "U";
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase();
+}
+
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
 
-  const navItems = SIDEBAR_NAV.filter((item) =>
-    item.roles.includes(DEMO_USER.role)
+  const user = useSelector(
+    (state: { auth: AuthState }) => state.auth.user
   );
 
+  const profile = user as
+    | (AuthUser & { fullName?: string })
+    | null;
+
+  const displayName =
+    profile?.name ||
+    profile?.fullName ||
+    "Usuário";
+
+  const displayEmail = profile?.email ?? "";
+
+  const role = profile?.role as UserRole | undefined;
+
+  const initials = getInitials(displayName);
+
+  // Filtra menus conforme o perfil autenticado.
+  const navItems = SIDEBAR_NAV.filter(
+    (item) =>
+      role !== undefined &&
+      item.roles.includes(role)
+  );
+
+  // Determina a rota ativa, priorizando a mais específica.
   const activeHref = navItems
     .filter(
       (item) =>
         pathname === item.href ||
         pathname.startsWith(`${item.href}/`)
     )
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+    .sort(
+      (a, b) => b.href.length - a.href.length
+    )[0]?.href;
+
+  function handleLogout() {
+    // Limpa a sessão do Redux.
+    dispatch(logout());
+
+    // Remove tokens persistidos no navegador.
+    // Ajuste caso o projeto utilize outras chaves.
+    try {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+    } catch {
+      // O Redux ainda será limpo.
+    }
+
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <Sidebar
@@ -151,7 +214,8 @@ export default function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive = activeHref === item.href;
+                const isActive =
+                  activeHref === item.href;
 
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -178,28 +242,35 @@ export default function AppSidebar() {
         <div className="flex items-center gap-2.5 rounded-md bg-white/[0.06] p-3">
           <Avatar className="size-9 shrink-0">
             <AvatarFallback className="bg-white/15 font-semibold text-white">
-              US
+              {initials}
             </AvatarFallback>
           </Avatar>
 
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-semibold text-white">
-              {DEMO_USER.fullName}
+              {displayName}
             </p>
 
             <p className="truncate text-xs text-blue-100/70">
-              {DEMO_USER.email}
+              {displayEmail}
             </p>
+
+            {role && (
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-blue-100/60">
+                {role}
+              </p>
+            )}
           </div>
 
-          <Link
-            href="/login"
-            title="Voltar ao login"
-            aria-label="Voltar ao login"
-            className="rounded-md p-2 text-white/70 hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden"
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sair da conta"
+            aria-label="Sair da conta"
+            className="rounded-md p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden"
           >
             <LogOut className="size-4" />
-          </Link>
+          </button>
         </div>
       </SidebarFooter>
     </Sidebar>

@@ -1,5 +1,6 @@
 package com.kingspanisoeste.budget.repository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
@@ -29,4 +30,22 @@ public interface MonthlyBudgetRepository extends JpaRepository<MonthlyBudgetEnti
         @Param("costCenterId") Long costCenterId,
         @Param("competence") LocalDate competence
     );
+
+    @Query("""
+    SELECT b
+    FROM MonthlyBudgetEntity b
+    JOIN FETCH b.costCenter
+    ORDER BY b.competence DESC, b.id DESC
+    """)
+List<MonthlyBudgetEntity> findAllWithCostCenter();
+
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("""
+    SELECT b
+    FROM MonthlyBudgetEntity b
+    WHERE b.id = :id
+    """)
+Optional<MonthlyBudgetEntity> findByIdForUpdate(
+    @Param("id") Long id
+);
 }

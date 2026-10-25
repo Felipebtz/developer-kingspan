@@ -1,543 +1,223 @@
-
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { ArrowLeft, Plus, Trash2, Save, Send } from "lucide-react";
+import type { AuthState } from "@/lib/redux/auth/authSlice";
 import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Save,
-  Send,
-  CheckCircle2,
-} from "lucide-react";
+  brl,
+  requestActionsApi,
+  requestCategories,
+  type CreatePurchaseRequestDTO,
+  type RequestCategory,
+  type RequestItemDTO,
+} from "@/lib/api/requests-action";
 
-import { Input } from "@/components/ui/input";
-
-type RequestItem = {
-  id: number;
-  description: string;
-  quantity: string;
-  unitPrice: string;
-};
-
-type RequestStatus = "DRAFT" | "IN_APPROVAL";
-
-const categories = [
-  { value: "EQUIPAMENTOS", label: "Equipamentos" },
-  { value: "MATERIAIS", label: "Materiais" },
-  { value: "SOFTWARE", label: "Software" },
-  { value: "SERVICOS", label: "Serviços" },
-  { value: "MANUTENCAO", label: "Manutenção" },
-  { value: "OUTROS", label: "Outros" },
-];
-
-// Categorias demonstrativas; ajustar aos enums reais da API.
-const STORAGE_KEY = "kingspan-demo-requests";
-
-const currency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
+type FormItem = { localId: number; description: string; quantity: string; unitPrice: string };
+const emptyItem = (localId: number): FormItem => ({
+  localId, description: "", quantity: "1", unitPrice: "",
 });
+const numeric = (value: string) => Number(value.replace(",", "."));
+const fieldClass = "h-10 w-full rounded border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#004289]";
+const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
-function newItem(id: number): RequestItem {
-  return {
-    id,
-    description: "",
-    quantity: "1",
-    unitPrice: "",
-  };
-}
-
-function toNumber(value: string): number {
-  const number = Number(value.replace(",", "."));
-  return Number.isFinite(number) ? number : 0;
+function newKey(): string {
+  return crypto.randomUUID();
 }
 
 export default function NewRequestPage() {
-  const nextItemId = useRef(2);
-  const requestId = useRef<number | null>(null);
+  const router = useRouter();
+  const user = useSelector((state: { auth: AuthState }) => state.auth.user);
+  const allowed = user?.role === "SOLICITANTE";
+
+  const nextId = useRef(2);
+  const savedId = useRef<number | null>(null);
+  const savedVersion = useRef<number | null>(null);
+  const idempotency = useRef<{ signature: string; key: string } | null>(null);
+  const inFlight = useRef(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<RequestCategory | "">("");
   const [neededBy, setNeededBy] = useState("");
-
-  const [items, setItems] = useState<RequestItem[]>([
-    newItem(1),
-  ]);
-
-  const [status, setStatus] = useState<RequestStatus | null>(null);
-  const [message, setMessage] = useState("");
+  const [items, setItems] = useState<FormItem[]>([emptyItem(1)]);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const submitted = status === "IN_APPROVAL";
-
   const total = items.reduce((sum, item) => {
-    const quantity = toNumber(item.quantity);
-    const price = toNumber(item.unitPrice);
-    return sum + quantity * price;
+    const q = numeric(item.quantity);
+    const price = numeric(item.unitPrice);
+    return sum + (Number.isFinite(q * price) ? q * price : 0);
   }, 0);
 
-  const addItem = () => {
-    setItems((current) => [
-      ...current,
-      newItem(nextItemId.current++),
-    ]);
-    setMessage("");
-  };
+  function editItem(localId: number, field: keyof Omit<FormItem, "localId">, value: string) {
+    setItems((current) => current.map((item) => item.localId === localId ? { ...item, [field]: value } : item));
+  }
 
-  const removeItem = (id: number) => {
-    if (items.length <= 1) return;
-
-    setItems((current) =>
-      current.filter((item) => item.id !== id)
-    );
-    setMessage("");
-  };
-
-  const updateItem = (
-    id: number,
-    field: keyof Omit<RequestItem, "id">,
-    value: string
-  ) => {
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id
-          ? { ...item, [field]: value }
-          : item
-      )
-    );
-    setMessage("");
-  };
-
-  // Persistência exclusivamente demonstrativa.
-  function saveDemo(nextStatus: RequestStatus) {
-    if (submitted) return;
-
-    if (nextStatus === "IN_APPROVAL") {
-      const validItems = items.every(
-        (item) =>
-          item.description.trim().length > 0 &&
-          toNumber(item.quantity) > 0 &&
-          toNumber(item.unitPrice) > 0
-      );
-
-      if (!title.trim() || !description.trim() || !category) {
-        setError("Preencha os dados da solicitação.");
-        return;
+  function buildPayload(strict: boolean): CreatePurchaseRequestDTO {
+    const completed: RequestItemDTO[] = [];
+    for (const item of items) {
+      const blank = !item.description.trim() && !item.unitPrice.trim();
+      if (!strict && blank) continue;
+      const quantity = numeric(item.quantity);
+      const unitPrice = numeric(item.unitPrice);
+      if (
+        !item.description.trim() ||
+        !Number.isSafeInteger(quantity) || quantity <= 0 ||
+        !Number.isFinite(unitPrice) || unitPrice <= 0
+      ) {
+        throw new Error("Preencha os itens com descrição, quantidade inteira e preço positivo.");
       }
-
-      if (!validItems || total <= 0) {
-        setError("Informe itens com quantidade e valor válidos.");
-        return;
-      }
+      completed.push({ description: item.description.trim(), quantity, unitPrice });
+    }
+    if (strict && (!title.trim() || !description.trim() || !category || !completed.length)) {
+      throw new Error("Preencha título, justificativa, categoria e pelo menos um item.");
     }
 
+    const costCenterId = (user as (typeof user & { costCenterId?: number }) | null)?.costCenterId;
+    return {
+      title: title.trim(),
+      description: description.trim(),
+      category: category || null,
+      neededBy: neededBy || null,
+      items: completed,
+      ...(Number.isSafeInteger(costCenterId) && costCenterId! > 0 ? { costCenterId } : {}),
+    };
+  }
+
+  async function saveDraft(payload: CreatePurchaseRequestDTO) {
+    if (savedId.current === null) {
+      // Uma chave por payload: reuso em retry, nova chave após edição.
+      const signature = JSON.stringify(payload);
+      if (!idempotency.current || idempotency.current.signature !== signature) {
+        idempotency.current = { signature, key: newKey() };
+      }
+      const created = await requestActionsApi.create(payload, idempotency.current.key);
+      if (!Number.isSafeInteger(created?.id) || created.id <= 0) {
+        throw new Error("A API não retornou o ID da solicitação criada.");
+      }
+      savedId.current = created.id;
+      savedVersion.current = created.lockVersion;
+      return created;
+    }
+    const lockVersion = savedVersion.current;
+    if (lockVersion === null) {
+      throw new Error("Não foi possível determinar a versão atual do rascunho.");
+    }
+    await requestActionsApi.update(savedId.current, { ...payload, lockVersion });
+    const latest = await requestActionsApi.byId(savedId.current);
+    savedVersion.current = latest.lockVersion;
+    return latest;
+  }
+
+  async function persist(submit: boolean) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSaving(true);
     setError("");
-
     try {
-      const existingRaw = localStorage.getItem(STORAGE_KEY);
-      const parsed = existingRaw ? JSON.parse(existingRaw) : [];
-
-      const existing: unknown[] = Array.isArray(parsed)
-        ? parsed
-        : [];
-
-      const nextRequestId = Math.max(
-        0,
-        ...existing.map((entry) => {
-          if (!entry || typeof entry !== "object") return 0;
-          const id = (entry as { id?: unknown }).id;
-          return typeof id === "number" && Number.isFinite(id) ? id : 0;
-        })
-      ) + 1;
-      const id = requestId.current ?? nextRequestId;
-
-      const record = {
-        id,
-        title,
-        description,
-        category,
-        neededBy,
-        items,
-        amount: total,
-        status: nextStatus,
-        date: new Date().toLocaleDateString("pt-BR"),
-      };
-
-      const updated = [
-        ...existing.filter((entry) => {
-          if (!entry || typeof entry !== "object") return false;
-          return (entry as { id?: number }).id !== id;
-        }),
-        record,
-      ];
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updated)
-      );
-
-      requestId.current = id;
-      setStatus(nextStatus);
-
-      setMessage(
-        nextStatus === "DRAFT"
-          ? "Rascunho salvo localmente para demonstração."
-          : "Envio simulado com sucesso. Nenhuma solicitação foi enviada ao servidor."
-      );
-    } catch {
-      setError("Não foi possível salvar os dados neste navegador.");
+      if (!allowed) throw new Error("Apenas solicitantes podem criar solicitações.");
+      const payload = buildPayload(submit);
+      const saved = await saveDraft(payload);
+      if (submit) {
+        // Nunca marcar PENDING_APPROVAL no cliente; transição é responsabilidade do backend.
+        await requestActionsApi.submit(saved.id, saved.lockVersion);
+      }
+      router.push(`/dashboard/requests/${saved.id}`);
+      router.refresh();
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível salvar a solicitação.");
+    } finally {
+      inFlight.current = false;
+      setSaving(false);
     }
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveDemo("IN_APPROVAL");
-  };
-
-  const inputClass =
-    "h-10 w-full rounded border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#004289] focus:ring-1 focus:ring-[#004289]";
-
-  const labelClass =
-    "mb-1.5 block text-sm font-medium text-slate-700";
+    void persist(true);
+  }
 
   return (
     <div className="space-y-6">
-      {/* CABEÇALHO */}
       <div>
-        <Link
-          href="/dashboard/requests"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-[#004289] hover:underline"
-        >
-          <ArrowLeft className="size-4" />
-          Minhas solicitações
+        <Link href="/dashboard/requests" className="mb-4 inline-flex items-center gap-2 text-sm text-[#004289] hover:underline">
+          <ArrowLeft className="size-4" /> Minhas solicitações
         </Link>
-
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Nova solicitação
-        </h1>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Preencha os dados para solicitar uma compra.
-        </p>
+        <h1 className="text-2xl font-semibold text-slate-900">Nova solicitação</h1>
+        <p className="mt-1 text-sm text-slate-500">Preencha os dados para solicitar uma compra.</p>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <fieldset disabled={submitted} className="space-y-6">
-          {/* DADOS GERAIS */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <fieldset disabled={saving || !allowed} className="space-y-6">
           <section className="overflow-hidden rounded-md border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="font-semibold text-slate-900">
-                Dados da solicitação
-              </h2>
-            </div>
-
+            <div className="border-b px-5 py-4"><h2 className="font-semibold text-slate-900">Dados da solicitação</h2></div>
             <div className="grid gap-5 p-5 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label htmlFor="title" className={labelClass}>
-                  Título da solicitação *
-                </label>
-
-                <Input
-                  id="title"
-                  placeholder="Ex.: Aquisição de notebooks"
-                  className={inputClass}
-                  required
-                  maxLength={255}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                <label htmlFor="title" className={labelClass}>Título da solicitação *</label>
+                <input id="title" className={fieldClass} required maxLength={255} placeholder="Ex.: Aquisição de notebooks" value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
-
               <div>
-                <label htmlFor="category" className={labelClass}>
-                  Categoria *
-                </label>
-
-                <select
-                  id="category"
-                  className={inputClass}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                >
+                <label htmlFor="category" className={labelClass}>Categoria *</label>
+                <select id="category" className={fieldClass} required value={category} onChange={(e) => setCategory(e.target.value as RequestCategory | "")}>
                   <option value="">Selecione uma categoria</option>
-
-                  {categories.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
+                  {requestCategories.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </div>
-
               <div>
-                <label htmlFor="neededBy" className={labelClass}>
-                  Data de necessidade
-                </label>
-
-                <Input
-                  id="neededBy"
-                  type="date"
-                  className={inputClass}
-                  value={neededBy}
-                  onChange={(e) => setNeededBy(e.target.value)}
-                />
+                <label htmlFor="neededBy" className={labelClass}>Data de necessidade</label>
+                <input id="neededBy" type="date" className={fieldClass} value={neededBy} onChange={(e) => setNeededBy(e.target.value)} />
               </div>
-
               <div className="md:col-span-2">
-                <label htmlFor="description" className={labelClass}>
-                  Justificativa / descrição *
-                </label>
-
-                <textarea
-                  id="description"
-                  rows={4}
-                  required
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva a finalidade desta compra..."
-                  className={`${inputClass} h-auto min-h-28 resize-y py-3`}
-                />
+                <label htmlFor="description" className={labelClass}>Justificativa / descrição *</label>
+                <textarea id="description" rows={4} required className={`${fieldClass} h-auto min-h-28 py-3`} placeholder="Descreva a finalidade desta compra..." value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
-
               <div className="md:col-span-2">
-                <label className={labelClass}>
-                  Centro de custo
-                </label>
-
-                <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                  Centro de custo vinculado ao solicitante
-                </div>
-
-                <p className="mt-1.5 text-xs text-slate-500">
-                  Será identificado automaticamente pelo usuário autenticado.
-                </p>
+                <p className={labelClass}>Centro de custo</p>
+                <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">Vinculado à conta autenticada</div>
+                <p className="mt-1 text-xs text-slate-500">O backend deve validar o centro de custo permitido para o solicitante.</p>
               </div>
             </div>
-
-            {category === "SOFTWARE" && (
-              <p className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-sm text-[#004289]">
-                Solicitações de software exigem aprovação final do ADMIN.
-              </p>
-            )}
+            {category === "SOFTWARE" && <p className="border-t bg-slate-50 px-5 py-3 text-sm text-[#004289]">Solicitações de software exigem aprovação final do ADMIN.</p>}
           </section>
 
-          {/* ITENS */}
           <section className="overflow-hidden rounded-md border border-slate-200 bg-white">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-              <div>
-                <h2 className="font-semibold text-slate-900">
-                  Itens da solicitação
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Informe os produtos ou serviços desejados.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={addItem}
-                className="inline-flex h-9 cursor-pointer items-center gap-2 rounded bg-[#004289] px-3 text-sm font-medium text-white hover:bg-[#003670]"
-              >
-                <Plus className="size-4" />
-                Adicionar item
-              </button>
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div><h2 className="font-semibold text-slate-900">Itens da solicitação</h2><p className="mt-1 text-xs text-slate-500">Informe os produtos ou serviços desejados.</p></div>
+              <button type="button" onClick={() => setItems((list) => [...list, emptyItem(nextId.current++)])} className="inline-flex h-9 items-center gap-2 rounded bg-[#004289] px-3 text-sm font-medium text-white"><Plus className="size-4" /> Adicionar item</button>
             </div>
-
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[740px] border-collapse text-left text-sm">
-                <thead className="bg-[#004289] text-white">
-                  <tr>
-                    <th className="w-12 px-4 py-3 text-center font-semibold">
-                      #
-                    </th>
-                    <th className="px-4 py-3 font-semibold">
-                      Descrição
-                    </th>
-                    <th className="w-28 px-4 py-3 font-semibold">
-                      Quantidade
-                    </th>
-                    <th className="w-36 px-4 py-3 font-semibold">
-                      Valor unitário
-                    </th>
-                    <th className="w-36 px-4 py-3 font-semibold">
-                      Subtotal
-                    </th>
-                    <th className="w-16 px-4 py-3 text-center font-semibold">
-                      Ação
-                    </th>
-                  </tr>
-                </thead>
-
+              <table className="w-full min-w-[740px] text-left text-sm">
+                <thead className="bg-[#004289] text-white"><tr><th className="px-4 py-3">#</th><th className="px-4 py-3">Descrição</th><th className="px-4 py-3">Quantidade</th><th className="px-4 py-3">Valor unitário</th><th className="px-4 py-3">Subtotal</th><th className="px-4 py-3">Ação</th></tr></thead>
                 <tbody>
-                  {items.map((item, index) => {
-                    const subtotal =
-                      toNumber(item.quantity) *
-                      toNumber(item.unitPrice);
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className={`border-b border-slate-200 ${
-                          index % 2 === 0
-                            ? "bg-white"
-                            : "bg-[#F5F7FA]"
-                        }`}
-                      >
-                        <td className="px-4 py-4 text-center text-slate-600">
-                          {index + 1}
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <input
-                            type="text"
-                            required
-                            placeholder="Descrição do item"
-                            value={item.description}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                "description",
-                                e.target.value
-                              )
-                            }
-                            className={inputClass}
-                          />
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            required
-                            value={item.quantity}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                "quantity",
-                                e.target.value
-                              )
-                            }
-                            className={inputClass}
-                          />
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <input
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            required
-                            placeholder="0,00"
-                            value={item.unitPrice}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                "unitPrice",
-                                e.target.value
-                              )
-                            }
-                            className={inputClass}
-                          />
-                        </td>
-
-                        <td className="px-4 py-4 font-medium text-slate-800">
-                          {currency.format(subtotal)}
-                        </td>
-
-                        <td className="px-4 py-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.id)}
-                            disabled={items.length === 1}
-                            title="Remover item"
-                            aria-label={`Remover item ${index + 1}`}
-                            className="cursor-pointer rounded p-2 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {items.map((item, index) => (
+                    <tr key={item.localId} className={`border-b ${index % 2 ? "bg-[#F5F7FA]" : "bg-white"}`}>
+                      <td className="px-4 py-4">{index + 1}</td>
+                      <td className="px-4 py-4"><input aria-label={`Descrição do item ${index + 1}`} required className={fieldClass} value={item.description} onChange={(e) => editItem(item.localId, "description", e.target.value)} /></td>
+                      <td className="px-4 py-4"><input aria-label={`Quantidade do item ${index + 1}`} type="number" min="1" step="1" required className={fieldClass} value={item.quantity} onChange={(e) => editItem(item.localId, "quantity", e.target.value)} /></td>
+                      <td className="px-4 py-4"><input aria-label={`Preço do item ${index + 1}`} type="number" min="0.01" step="0.01" required className={fieldClass} value={item.unitPrice} onChange={(e) => editItem(item.localId, "unitPrice", e.target.value)} /></td>
+                      <td className="px-4 py-4 font-medium">{brl.format(Math.max(0, numeric(item.quantity) * numeric(item.unitPrice) || 0))}</td>
+                      <td className="px-4 py-4"><button type="button" disabled={items.length === 1} onClick={() => setItems((list) => list.filter((row) => row.localId !== item.localId))} aria-label={`Remover item ${index + 1}`} className="rounded p-2 text-red-600 hover:bg-red-50 disabled:opacity-30"><Trash2 className="size-4" /></button></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-
-            {/* TOTAL */}
-            <div className="flex justify-end border-t border-slate-200 bg-[#F5F7FA] px-6 py-5">
-              <div className="text-right">
-                <p className="text-sm text-slate-600">
-                  Valor total da solicitação
-                </p>
-                <p className="mt-1 text-2xl font-semibold text-[#004289]">
-                  {currency.format(total)}
-                </p>
-              </div>
-            </div>
+            <div className="border-t bg-slate-50 px-5 py-4 text-right"><p className="text-sm text-slate-600">Valor total da solicitação</p><p className="text-2xl font-semibold text-[#004289]">{brl.format(total)}</p></div>
           </section>
         </fieldset>
 
-        {/* MENSAGENS */}
-        {error && (
-          <div
-            role="alert"
-            className="mt-5 border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-          >
-            {error}
-          </div>
-        )}
+        {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+        {!allowed && <p role="alert" className="text-sm text-amber-700">Você precisa estar autenticado como SOLICITANTE.</p>}
 
-        {message && (
-          <div
-            role="status"
-            className="mt-5 flex items-start gap-3 rounded border border-blue-200 bg-blue-50 p-4 text-sm text-[#004289]"
-          >
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-            <span>{message}</span>
-          </div>
-        )}
-
-        {/* AÇÕES */}
-        <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
-          <Link
-            href="/dashboard/requests"
-            className="inline-flex h-10 items-center rounded border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Voltar
-          </Link>
-
-          <button
-            type="button"
-            disabled={submitted}
-            onClick={() => saveDemo("DRAFT")}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded border border-[#004289] bg-white px-4 text-sm font-medium text-[#004289] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Save className="size-4" />
-            Salvar rascunho
-          </button>
-
-          <button
-            type="submit"
-            formNoValidate={false}
-            disabled={submitted}
-            onClick={undefined}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded bg-[#004289] px-4 text-sm font-medium text-white hover:bg-[#003670] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Send className="size-4" />
-            Enviar para aprovação
-          </button>
+        <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+          <Link href="/dashboard/requests" className="inline-flex h-10 items-center rounded border border-slate-300 px-5 text-sm text-slate-700">Voltar</Link>
+          <button type="button" disabled={saving || !allowed} onClick={() => void persist(false)} className="inline-flex h-10 items-center gap-2 rounded border border-[#004289] px-4 text-sm font-medium text-[#004289] disabled:opacity-50"><Save className="size-4" /> Salvar rascunho</button>
+          <button type="submit" disabled={saving || !allowed} className="inline-flex h-10 items-center gap-2 rounded bg-[#004289] px-4 text-sm font-medium text-white disabled:opacity-50"><Send className="size-4" /> {saving ? "Salvando..." : "Enviar para aprovação"}</button>
         </div>
       </form>
-
-      <p className="text-xs text-slate-500">
-        Prévia visual. O cálculo exibido é demonstrativo; valores,
-        orçamento e regras de aprovação serão validados pelo backend.
-      </p>
     </div>
   );
 }

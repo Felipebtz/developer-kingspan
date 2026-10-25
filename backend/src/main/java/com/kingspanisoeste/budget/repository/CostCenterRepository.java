@@ -8,4 +8,6 @@ import com.kingspanisoeste.budget.entity.CostCenterEntity;
 
 public interface CostCenterRepository extends JpaRepository<CostCenterEntity, Long>{
     Optional<CostCenterEntity> findByCode(String code);
+
+    boolean existsByCodeIgnoreCase(String code);
 }
