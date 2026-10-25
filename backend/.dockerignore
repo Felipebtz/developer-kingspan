@@ -1,0 +1,6 @@
+target/
+.mvn/codex-cache/
+.env
+.env.*
+!.env.example
+*.log

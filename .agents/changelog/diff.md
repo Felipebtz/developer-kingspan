@@ -100,3 +100,79 @@ One block per agent turn, one row per changed file:
 | `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/ApprovalServiceTest.java` | created | +151 | -0 |
 | `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestServiceTest.java` | created | +214 | -0 |
 | `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/SubmitPurchaseRequestServiceTest.java` | created | +181 | -0 |
+
+---
+### Turn 2026-10-25 01:50:51 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Complete frontend JWT authentication integration, fix TypeScript and Redux session bootstrap, and validate the production build.
+- **Summary**: Centralized session storage, fixed typed Redux authentication bootstrap, guarded password recovery parameters, and completed production validation.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `frontend/lib/redux/auth/session.ts` | created | +1 | -0 |
+| `frontend/lib/redux/hooks.ts` | modified | +3 | -2 |
+| `frontend/lib/redux/ApiAuthBootstrap.tsx` | modified | +2 | -3 |
+| `frontend/lib/redux/StoreProvider.tsx` | modified | +4 | -5 |
+| `frontend/app/(auth)/login/page.tsx` | modified | +2 | -4 |
+| `frontend/app/(auth)/forgot-password/otp/page.tsx` | modified | +17 | -3 |
+| `frontend/app/(auth)/forgot-password/reset-password/page.tsx` | modified | +11 | -2 |
+| `frontend/app/layout.tsx` | modified | +2 | -1 |
+
+---
+### Turn 2026-10-25 02:08:26 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Validate the frontend JWT flow against the real backend and complete browser interoperability.
+- **Summary**: Enabled narrowly scoped configurable CORS for the frontend and validated login, session identity, and unauthorized handling against PostgreSQL.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/security/SecurityConfig.java` | modified | +31 | -1 |
+
+---
+### Turn 2026-10-25 02:21:20 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Resume and finish the real JWT authentication validation.
+- **Summary**: Removed the embedded JWT fallback, decoded the configured Base64 secret, and supplied an isolated test-only key for the Spring context test.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/security/SecurityConfig.java` | modified | +4 | -3 |
+| `backend/src/test/java/com/kingspanisoeste/KingspanApplicationTests.java` | modified | +1 | -1 |
+
+---
+### Turn 2026-10-25 03:56:08 -0300 · Codex
+- **Source**: manual
+- **Session**: n/a
+- **Prompt**: Implement SPEC INFRA-01 with Docker Compose, demo seed, health checks, CI, tests, and isolated smoke validation.
+- **Summary**: Added a reproducible three-service Docker environment, idempotent demo data, request tracing, frontend quality gates, CI coverage, and validated the real API against isolated PostgreSQL.
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `.env.example` | created | +13 | -0 |
+| `.github/workflows/ci.yml` | modified | +54 | -0 |
+| `docker-compose.yml` | created | +78 | -0 |
+| `backend/.dockerignore` | created | +6 | -0 |
+| `backend/Dockerfile` | created | +13 | -0 |
+| `backend/README.md` | created | +30 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/budget/repository/CostCenterRepository.java` | modified | +4 | -4 |
+| `backend/src/main/java/com/kingspanisoeste/budget/repository/MonthlyBudgetRepository.java` | modified | +5 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/config/DemoDataSeeder.java` | created | +356 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/config/RequestIdFilter.java` | created | +38 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/repository/PurchaseRequestRepository.java` | modified | +2 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/security/SecurityConfig.java` | modified | +1 | -0 |
+| `backend/src/main/resources/application.properties` | modified | +5 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/config/RequestIdFilterTest.java` | created | +34 | -0 |
+| `frontend/.dockerignore` | created | +6 | -0 |
+| `frontend/Dockerfile` | created | +23 | -0 |
+| `frontend/README.md` | modified | +25 | -36 |
+| `frontend/app/(auth)/forgot-password/otp/page.tsx` | modified | +0 | -1 |
+| `frontend/app/dashboard/approvals/page.tsx` | modified | +3 | -9 |
+| `frontend/app/dashboard/requests/[id]/edit/page.tsx` | modified | +3 | -16 |
+| `frontend/app/dashboard/requests/[id]/page.tsx` | modified | +50 | -38 |
+| `frontend/app/dashboard/requests/new/page.tsx` | modified | +4 | -1 |
+| `frontend/hooks/use-mobile.ts` | modified | +9 | -12 |
+| `frontend/next.config.ts` | modified | +1 | -0 |
+| `frontend/package.json` | modified | +4 | -1 |

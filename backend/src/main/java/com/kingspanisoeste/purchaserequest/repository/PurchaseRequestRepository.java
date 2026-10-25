@@ -22,6 +22,8 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
 
     Page<PurchaseRequestEntity> findByCostCenterId(Long costCenterId, Pageable pageable);
 
+    Optional<PurchaseRequestEntity> findByTitle(String title);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select request from PurchaseRequestEntity request where request.id = :id")
     Optional<PurchaseRequestEntity> findByIdForUpdate(@Param("id") Long id);

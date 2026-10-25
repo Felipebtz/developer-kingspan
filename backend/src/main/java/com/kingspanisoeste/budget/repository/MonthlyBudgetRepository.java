@@ -13,6 +13,11 @@ import com.kingspanisoeste.budget.entity.MonthlyBudgetEntity;
 
 public interface MonthlyBudgetRepository extends JpaRepository<MonthlyBudgetEntity, Long> {
 
+    Optional<MonthlyBudgetEntity> findByCostCenterIdAndCompetence(
+        Long costCenterId,
+        LocalDate competence
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select budget
