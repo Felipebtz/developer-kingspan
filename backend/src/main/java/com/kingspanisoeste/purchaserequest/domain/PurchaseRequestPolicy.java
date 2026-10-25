@@ -57,10 +57,15 @@ public class PurchaseRequestPolicy {
         };
     }
 
-    public List<String> calculateAllowedActions(PurchaseRequestEntity request, Long userId) {
+    public List<String> calculateAllowedActions(
+        PurchaseRequestEntity request,
+        UserEntity actor,
+        ApprovalStepEntity currentStep,
+        boolean alreadyApprovedThisVersion
+    ) {
         List<String> actions = new ArrayList<>();
 
-        if (isOwner(request, userId)) {
+        if (isOwner(request, actor.getId())) {
             if (request.getStatus() == PurchaseRequestStatus.DRAFT || request.getStatus() == PurchaseRequestStatus.CHANGES_REQUESTED) {
                 actions.add("EDIT");
                 actions.add("SUBMIT");
@@ -71,7 +76,32 @@ public class PurchaseRequestPolicy {
                 actions.add("CANCEL");
             }
         }
+
+        if (canDecide(request, currentStep, actor, alreadyApprovedThisVersion)) {
+            actions.add("APPROVE");
+            actions.add("REJECT");
+            actions.add("REQUEST_CHANGES");
+        }
+
         return actions;
+    }
+
+    public boolean canDecide(
+        PurchaseRequestEntity request,
+        ApprovalStepEntity currentStep,
+        UserEntity actor,
+        boolean alreadyApprovedThisVersion
+    ) {
+        if (currentStep == null
+                || actor.getStatus() != UserStatus.ACTIVE
+                || actor.getRole() == UserRole.SOLICITANTE
+                || request.getStatus() != PurchaseRequestStatus.PENDING_APPROVAL
+                || isOwner(request, actor.getId())
+                || alreadyApprovedThisVersion) {
+            return false;
+        }
+
+        return isEligible(request, currentStep.getRequiredLevel(), actor);
     }
 
     public void requireDecisionPermission(

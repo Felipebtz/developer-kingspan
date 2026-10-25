@@ -4,6 +4,8 @@ package com.kingspanisoeste.purchaserequest.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kingspanisoeste.auth.entity.UserEntity;
+import com.kingspanisoeste.auth.entity.enums.UserRole;
+import com.kingspanisoeste.auth.entity.enums.UserStatus;
 import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.budget.entity.CostCenterEntity;
 import com.kingspanisoeste.budget.repository.CostCenterRepository;
@@ -14,11 +16,16 @@ import com.kingspanisoeste.purchaserequest.dto.PurchaseRequestResponseDTO;
 import com.kingspanisoeste.purchaserequest.dto.RequestItemDTO;
 import com.kingspanisoeste.purchaserequest.dto.UpdatePurchaseRequestDTO;
 import com.kingspanisoeste.purchaserequest.entity.PurchaseRequestEntity;
+import com.kingspanisoeste.purchaserequest.entity.ApprovalStepEntity;
+import com.kingspanisoeste.purchaserequest.entity.RequestVersionEntity;
 import com.kingspanisoeste.purchaserequest.entity.RequestIdempotencyEntity;
 import com.kingspanisoeste.purchaserequest.entity.RequestItemEntity;
 import com.kingspanisoeste.purchaserequest.entity.enums.PurchaseRequestStatus;
 import com.kingspanisoeste.purchaserequest.repository.PurchaseRequestRepository;
+import com.kingspanisoeste.purchaserequest.repository.ApprovalStepRepository;
 import com.kingspanisoeste.purchaserequest.repository.RequestIdempotencyRepository;
+import com.kingspanisoeste.purchaserequest.repository.RequestVersionRepository;
+import com.kingspanisoeste.purchaserequest.entity.enums.ApprovalStepStatus;
 import com.kingspanisoeste.budget.entity.enums.CostCenterStatus;
 import com.kingspanisoeste.shared.exception.BusinessException;
 
@@ -46,6 +53,8 @@ public class PurchaseRequestService {
     private final UserRepository userRepository;
     private final CostCenterRepository costCenterRepository;
     private final RequestIdempotencyRepository idempotencyRepository;
+    private final RequestVersionRepository versionRepository;
+    private final ApprovalStepRepository stepRepository;
     private final PurchaseRequestPolicy policy;
     private final PurchaseAmountCalculator amountCalculator;
     private final PurchaseRequestAuditService auditService;
@@ -56,6 +65,8 @@ public class PurchaseRequestService {
             UserRepository userRepository,
             CostCenterRepository costCenterRepository,
             RequestIdempotencyRepository idempotencyRepository,
+            RequestVersionRepository versionRepository,
+            ApprovalStepRepository stepRepository,
             PurchaseRequestPolicy policy,
             PurchaseAmountCalculator amountCalculator,
             PurchaseRequestAuditService auditService,
@@ -65,6 +76,8 @@ public class PurchaseRequestService {
         this.userRepository = userRepository;
         this.costCenterRepository = costCenterRepository;
         this.idempotencyRepository = idempotencyRepository;
+        this.versionRepository = versionRepository;
+        this.stepRepository = stepRepository;
         this.policy = policy;
         this.amountCalculator = amountCalculator;
         this.auditService = auditService;
@@ -146,7 +159,7 @@ public class PurchaseRequestService {
                 savedRequest.getCurrentVersion(), requestId, "Rascunho criado."
         );
 
-        PurchaseRequestResponseDTO response = mapToResponse(savedRequest, userId);
+        PurchaseRequestResponseDTO response = mapToResponse(savedRequest, user);
 
         // Guarda a resposta para evitar criação duplicada
         if (idempotencyRecord != null) {
@@ -192,7 +205,8 @@ public class PurchaseRequestService {
                 updatedRequest.getCurrentVersion(), requestId, "Rascunho atualizado."
         );
 
-        return mapToResponse(updatedRequest, userId);
+        UserEntity actor = findUser(userId);
+        return mapToResponse(updatedRequest, actor);
     }
 
     @Transactional(readOnly = true)
@@ -201,16 +215,16 @@ public class PurchaseRequestService {
         PurchaseRequestEntity request = requestRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "REQUEST_NOT_FOUND", "Solicitação não encontrada."));
 
-        requireReadVisibility(request, userId, role);
+        UserEntity actor = findUser(userId);
+        requireReadVisibility(request, actor, role);
 
-        return mapToResponse(request, userId);
+        return mapToResponse(request, actor);
     }
 
     @Transactional(readOnly = true)
     public Page<PurchaseRequestResponseDTO> listRequests(Pageable pageable, Long userId, String role) {
 
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Usuário não encontrado."));
+        UserEntity user = findUser(userId);
 
         Page<PurchaseRequestEntity> requests;
 
@@ -238,16 +252,49 @@ public class PurchaseRequestService {
             requests = requestRepository.findByRequesterId(userId, pageable);
         }
 
-        return requests.map(request -> mapToResponse(request, userId));
+        return requests.map(request -> mapToResponse(request, user));
     }
 
-    private void requireReadVisibility(PurchaseRequestEntity request, Long userId, String role) {
+    @Transactional(readOnly = true)
+    public Page<PurchaseRequestResponseDTO> listApprovalInbox(
+        Pageable pageable,
+        Long userId
+    ) {
+        UserEntity actor = findUser(userId);
 
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Usuário não encontrado."));
+        if (actor.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "USER_INACTIVE",
+                "Usuário inativo não pode consultar aprovações."
+            );
+        }
+
+        if (actor.getRole() == UserRole.SOLICITANTE) {
+            throw new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "ROLE_NOT_ALLOWED",
+                "O perfil SOLICITANTE não possui caixa de aprovações."
+            );
+        }
+
+        String approverLevel = actor.getApproverLevel() == null
+            ? null
+            : actor.getApproverLevel().name();
+
+        return requestRepository.findApprovalInbox(
+            actor.getId(),
+            actor.getRole().name(),
+            actor.getCostCenterId(),
+            approverLevel,
+            pageable
+        ).map(request -> mapToResponse(request, actor));
+    }
+
+    private void requireReadVisibility(PurchaseRequestEntity request, UserEntity user, String role) {
 
         boolean isAdmin = "ADMIN".equals(role);
-        boolean isOwner = Objects.equals(request.getRequesterId(), userId);
+        boolean isOwner = Objects.equals(request.getRequesterId(), user.getId());
         boolean sameCostCenter = user.getCostCenterId() != null && Objects.equals(request.getCostCenterId(), user.getCostCenterId());
         boolean isPrivateDraft = request.getStatus() == PurchaseRequestStatus.DRAFT || request.getStatus() == PurchaseRequestStatus.CHANGES_REQUESTED;
         boolean isApprover = "APROVADOR".equals(role) && sameCostCenter && !isPrivateDraft;
@@ -279,13 +326,48 @@ public class PurchaseRequestService {
         request.updateTotal(amountCalculator.calculateTotal(subtotals));
     }
 
-    private PurchaseRequestResponseDTO mapToResponse(PurchaseRequestEntity request, Long userId) {
+    private PurchaseRequestResponseDTO mapToResponse(PurchaseRequestEntity request, UserEntity actor) {
 
         List<RequestItemDTO> items = request.getItems().stream()
                 .map(item -> new RequestItemDTO(item.getId(), item.getDescription(), item.getQuantity(), item.getUnitPrice(), item.getSubtotal()))
                 .toList();
 
-        List<String> allowedActions = policy.calculateAllowedActions(request, userId);
+        ApprovalStepEntity currentStep = null;
+        boolean alreadyApprovedThisVersion = false;
+
+        if (request.getStatus() == PurchaseRequestStatus.PENDING_APPROVAL
+                && request.getCurrentVersion() > 0
+                && actor.getRole() != UserRole.SOLICITANTE
+                && !Objects.equals(request.getRequesterId(), actor.getId())) {
+            Optional<RequestVersionEntity> currentVersion = versionRepository
+                .findByPurchaseRequestIdAndVersionNumber(
+                    request.getId(),
+                    request.getCurrentVersion()
+                );
+
+            if (currentVersion.isPresent()) {
+                Long versionId = currentVersion.get().getId();
+                currentStep = stepRepository
+                    .findFirstByRequestVersionIdAndStatus(
+                        versionId,
+                        ApprovalStepStatus.PENDING
+                    )
+                    .orElse(null);
+                alreadyApprovedThisVersion = stepRepository
+                    .existsByRequestVersionIdAndApproverIdAndStatus(
+                        versionId,
+                        actor.getId(),
+                        ApprovalStepStatus.APPROVED
+                    );
+            }
+        }
+
+        List<String> allowedActions = policy.calculateAllowedActions(
+            request,
+            actor,
+            currentStep,
+            alreadyApprovedThisVersion
+        );
 
         return new PurchaseRequestResponseDTO(
                 request.getId(), request.getRequesterId(), request.getCostCenterId(), request.getTitle(),
@@ -298,5 +380,14 @@ public class PurchaseRequestService {
 
     private OffsetDateTime toUtc(Instant instant) {
         return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
+    }
+
+    private UserEntity findUser(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(
+                HttpStatus.NOT_FOUND,
+                "USER_NOT_FOUND",
+                "Usuário não encontrado."
+            ));
     }
 }

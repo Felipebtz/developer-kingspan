@@ -25,7 +25,9 @@ import com.kingspanisoeste.purchaserequest.entity.RequestIdempotencyEntity;
 import com.kingspanisoeste.purchaserequest.entity.enums.PurchaseCategory;
 import com.kingspanisoeste.purchaserequest.entity.enums.PurchaseRequestStatus;
 import com.kingspanisoeste.purchaserequest.repository.PurchaseRequestRepository;
+import com.kingspanisoeste.purchaserequest.repository.ApprovalStepRepository;
 import com.kingspanisoeste.purchaserequest.repository.RequestIdempotencyRepository;
+import com.kingspanisoeste.purchaserequest.repository.RequestVersionRepository;
 import com.kingspanisoeste.shared.exception.BusinessException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,8 @@ class PurchaseRequestServiceTest {
     @Mock UserRepository userRepository;
     @Mock CostCenterRepository costCenterRepository;
     @Mock RequestIdempotencyRepository idempotencyRepository;
+    @Mock RequestVersionRepository versionRepository;
+    @Mock ApprovalStepRepository stepRepository;
     @Mock PurchaseRequestPolicy policy;
     @Mock PurchaseAmountCalculator amountCalculator;
     @Mock PurchaseRequestAuditService auditService;
@@ -64,6 +68,8 @@ class PurchaseRequestServiceTest {
             userRepository,
             costCenterRepository,
             idempotencyRepository,
+            versionRepository,
+            stepRepository,
             policy,
             amountCalculator,
             auditService,

@@ -31,7 +31,62 @@ class PurchaseRequestPolicyTest {
         assertThrows(SecurityException.class,
             () -> policy.requireEditPermission(draft, 99L));
         assertEquals(java.util.List.of("EDIT", "SUBMIT", "CANCEL"),
-            policy.calculateAllowedActions(draft, 10L));
+            policy.calculateAllowedActions(
+                draft,
+                actor(10L, UserRole.SOLICITANTE, null, 20L),
+                null,
+                false
+            ));
+    }
+
+    @Test
+    void deveExporDecisoesPermitidasParaAprovadorElegivel() {
+        PurchaseRequestEntity request = request(
+            10L,
+            20L,
+            PurchaseRequestStatus.PENDING_APPROVAL
+        );
+        UserEntity approver = actor(
+            30L,
+            UserRole.APROVADOR,
+            ApproverLevel.NIVEL_1,
+            20L
+        );
+
+        assertEquals(
+            java.util.List.of("APPROVE", "REJECT", "REQUEST_CHANGES"),
+            policy.calculateAllowedActions(
+                request,
+                approver,
+                step(ApprovalRequiredLevel.NIVEL_1),
+                false
+            )
+        );
+    }
+
+    @Test
+    void naoDeveExporDecisoesQuandoAprovadorJaAtuouNaVersao() {
+        PurchaseRequestEntity request = request(
+            10L,
+            20L,
+            PurchaseRequestStatus.PENDING_APPROVAL
+        );
+        UserEntity approver = actor(
+            30L,
+            UserRole.APROVADOR,
+            ApproverLevel.NIVEL_2,
+            20L
+        );
+
+        assertEquals(
+            java.util.List.of(),
+            policy.calculateAllowedActions(
+                request,
+                approver,
+                step(ApprovalRequiredLevel.NIVEL_2),
+                true
+            )
+        );
     }
 
     @Test

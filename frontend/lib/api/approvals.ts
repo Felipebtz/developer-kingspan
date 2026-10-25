@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/http";
+import { ApiError, apiRequest } from "./http";
 
 export type ApprovalAction = "APPROVE" | "REJECT" | "REQUEST_CHANGES";
 
@@ -61,9 +61,23 @@ export function isActionAllowed(request: ApprovalRequest, action: ApprovalAction
   return actions.includes(action);
 }
 
+export function approvalErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status === 409) {
+    return `${error.detail} Outra pessoa pode ter decidido antes; atualize a lista.`;
+  }
+
+  if (error instanceof ApiError && error.status === 422) {
+    return error.detail;
+  }
+
+  return error instanceof Error
+    ? error.message
+    : "Não foi possível registrar a decisão.";
+}
+
 export const approvalsApi = {
   async list(page = 0, size = 50): Promise<RequestsPage> {
-    const raw = await apiRequest<unknown>(`/requests?page=${page}&size=${size}`, {
+    const raw = await apiRequest<unknown>(`/approvals/inbox?page=${page}&size=${size}`, {
       method: "GET",
     });
     const wrapper = Array.isArray(raw) ? { content: raw } : asRecord(raw);

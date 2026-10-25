@@ -15,6 +15,7 @@ import {
 
 import {
   approvalsApi,
+  approvalErrorMessage,
   isActionAllowed,
   type ApprovalAction,
   type ApprovalRequest,
@@ -89,12 +90,7 @@ export default function ApprovalsPage() {
       .then((response) => {
         if (!active) return;
 
-        setRequests(
-          response.data.filter(
-            (request) =>
-              request.status === "PENDING_APPROVAL"
-          )
-        );
+        setRequests(response.data);
 
         setTotalPages(
           Math.max(1, response.totalPages || 1)
@@ -173,12 +169,9 @@ export default function ApprovalsPage() {
   async function confirmDecision() {
     if (!selected || !decision || processing) return;
 
-    if (
-      decision !== "APPROVE" &&
-      !comment.trim()
-    ) {
+    if (decision !== "APPROVE" && comment.trim().length < 10) {
       setError(
-        "Informe a justificativa para esta decisão."
+        "Informe uma justificativa com pelo menos 10 caracteres."
       );
       return;
     }
@@ -220,11 +213,7 @@ export default function ApprovalsPage() {
 
       setReload((v) => v + 1);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível registrar a decisão."
-      );
+      setError(approvalErrorMessage(err));
     } finally {
       setProcessing(false);
     }
@@ -597,7 +586,7 @@ export default function ApprovalsPage() {
                 disabled={
                   processing ||
                   (decision !== "APPROVE" &&
-                    !comment.trim())
+                    comment.trim().length < 10)
                 }
                 onClick={confirmDecision}
                 className="rounded bg-[#004289] px-4 py-2 text-sm text-white disabled:opacity-40"

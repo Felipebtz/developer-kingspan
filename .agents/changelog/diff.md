@@ -207,3 +207,22 @@ One block per agent turn, one row per changed file:
 | File | Change | Additions | Removals |
 |---|---|---|---|
 | `backend/src/main/java/com/kingspanisoeste/budget/repository/MonthlyBudgetRepository.java` | modified | +1 | -0 |
+
+---
+### Turn 2026-10-25 20:23:11 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Integrated approval inbox with real API eligibility and validated Maria approval flow
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/controller/ApprovalInboxController.java` | created | +36 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestPolicy.java` | modified | +32 | -2 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/repository/PurchaseRequestRepository.java` | modified | +84 | -0 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestService.java` | modified | +104 | -13 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestPolicyTest.java` | modified | +56 | -1 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestServiceTest.java` | modified | +6 | -0 |
+| `frontend/app/dashboard/approvals/page.tsx` | modified | +7 | -18 |
+| `frontend/lib/api/approvals.ts` | modified | +16 | -2 |
+| `frontend/lib/tests/approvals.test.ts` | created | +76 | -0 |
