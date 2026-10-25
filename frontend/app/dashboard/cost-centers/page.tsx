@@ -40,6 +40,10 @@ export default function CostCentersPage() {
 
     let active = true;
 
+    setLoading(true);
+setError("");
+setCenters([]);
+
     administrationApi
       .listCostCenters()
       .then((data) => {
@@ -61,7 +65,7 @@ export default function CostCentersPage() {
     return () => {
       active = false;
     };
-  }, [isAdmin, reload]);
+  }, [isAdmin, reload, auth.accessToken]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
