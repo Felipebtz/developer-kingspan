@@ -51,43 +51,39 @@ export default function BudgetsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if (!isAdmin) {
-      setLoading(false);
-      setBudgets([]);
-      setCenters([]);
-      return;
-    }
+ useEffect(() => {
+  if (!isAdmin || !auth.accessToken) return;
 
-    let active = true;
+  let active = true;
 
-    Promise.all([
-      administrationApi.listBudgets(),
-      administrationApi.listCostCenters(),
-    ])
-      .then(([budgetData, centerData]) => {
-        if (!active) return;
+  Promise.all([
+    administrationApi.listBudgets(),
+    administrationApi.listCostCenters(),
+  ])
+    .then(([budgetData, centerData]) => {
+      if (!active) return;
 
-        setBudgets(budgetData);
-        setCenters(centerData);
-      })
-      .catch((err: unknown) => {
-        if (active) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Não foi possível carregar os orçamentos."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      setBudgets(budgetData);
+      setCenters(centerData);
+      setError("");
+    })
+    .catch((err: unknown) => {
+      if (!active) return;
 
-    return () => {
-      active = false;
-    };
-  }, [isAdmin, reload]);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível carregar os orçamentos."
+      );
+    })
+    .finally(() => {
+      if (active) setLoading(false);
+    });
+
+  return () => {
+    active = false;
+  };
+}, [isAdmin, auth.accessToken, reload]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
