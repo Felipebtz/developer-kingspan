@@ -93,12 +93,15 @@ public class PurchaseRequestController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PurchaseRequestResponseDTO>> listRequests(Pageable pageable, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<PurchaseRequestResponseDTO>> listRequests(
+            Pageable pageable,
+            @RequestParam(name = "mine", defaultValue = "false") boolean mine,
+            @AuthenticationPrincipal Jwt jwt) {
 
         Long userId = Long.valueOf(jwt.getSubject());
         String role = jwt.getClaimAsString("role");
 
-        Page<PurchaseRequestResponseDTO> page = requestService.listRequests(pageable, userId, role);
+        Page<PurchaseRequestResponseDTO> page = requestService.listRequests(pageable, userId, role, mine);
 
         return ResponseEntity.ok(page);
     }

@@ -222,13 +222,19 @@ public class PurchaseRequestService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PurchaseRequestResponseDTO> listRequests(Pageable pageable, Long userId, String role) {
+    public Page<PurchaseRequestResponseDTO> listRequests(
+            Pageable pageable,
+            Long userId,
+            String role,
+            boolean mine) {
 
         UserEntity user = findUser(userId);
 
         Page<PurchaseRequestEntity> requests;
 
-        if ("ADMIN".equals(role)) {
+        if (mine) {
+            requests = requestRepository.findByRequesterId(userId, pageable);
+        } else if ("ADMIN".equals(role)) {
             requests = requestRepository.findAll(pageable);
         } else if ("APROVADOR".equals(role) && user.getCostCenterId() != null) {
 

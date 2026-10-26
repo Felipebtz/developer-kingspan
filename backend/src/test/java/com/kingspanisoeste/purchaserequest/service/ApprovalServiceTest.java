@@ -10,7 +10,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.kingspanisoeste.auth.entity.UserEntity;
+import com.kingspanisoeste.auth.entity.enums.ApproverLevel;
 import com.kingspanisoeste.auth.entity.enums.UserRole;
+import com.kingspanisoeste.auth.entity.enums.UserStatus;
 import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.budget.service.BudgetService;
 import com.kingspanisoeste.purchaserequest.domain.PurchaseRequestPolicy;
@@ -115,6 +117,65 @@ class ApprovalServiceTest {
             PurchaseRequestStatus.PENDING_APPROVAL,
             PurchaseRequestStatus.PENDING_APPROVAL,
             1, 1, ApprovalRequiredLevel.NIVEL_1, "trace-step", null
+        );
+    }
+
+    @Test
+    void mariaElegivelDeveAprovarSolicitacaoDoisNaEtapaNivelUm() {
+        ApprovalService serviceWithRealPolicy = new ApprovalService(
+            requestRepository,
+            versionRepository,
+            stepRepository,
+            userRepository,
+            new PurchaseRequestPolicy(),
+            budgetService,
+            auditService
+        );
+        PurchaseRequestEntity request = new PurchaseRequestEntity(1L, 20L);
+        ReflectionTestUtils.setField(request, "id", 2L);
+        ReflectionTestUtils.setField(request, "lockVersion", 1L);
+        request.markSubmitted(1, Instant.now());
+        RequestVersionEntity version = org.mockito.Mockito.mock(RequestVersionEntity.class);
+        when(version.getId()).thenReturn(200L);
+        when(version.getVersionNumber()).thenReturn(1);
+        UserEntity maria = org.mockito.Mockito.mock(UserEntity.class);
+        when(maria.getId()).thenReturn(30L);
+        when(maria.getRole()).thenReturn(UserRole.APROVADOR);
+        when(maria.getStatus()).thenReturn(UserStatus.ACTIVE);
+        when(maria.getApproverLevel()).thenReturn(ApproverLevel.NIVEL_1);
+        when(maria.getCostCenterId()).thenReturn(20L);
+        ApprovalStepEntity levelOne = new ApprovalStepEntity(
+            200L, 1, ApprovalRequiredLevel.NIVEL_1, true);
+        ApprovalStepEntity levelTwo = new ApprovalStepEntity(
+            200L, 2, ApprovalRequiredLevel.NIVEL_2, false);
+        when(requestRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(request));
+        when(userRepository.findById(30L)).thenReturn(Optional.of(maria));
+        when(versionRepository.findByPurchaseRequestIdAndVersionNumber(2L, 1))
+            .thenReturn(Optional.of(version));
+        when(stepRepository.findByRequestVersionIdOrderByStepOrderAsc(200L))
+            .thenReturn(List.of(levelOne, levelTwo));
+
+        serviceWithRealPolicy.approve(
+            2L, 1L, "Aprovado por Maria", 30L, "trace-maria");
+
+        assertEquals(PurchaseRequestStatus.PENDING_APPROVAL, request.getStatus());
+        assertEquals(ApprovalStepStatus.APPROVED, levelOne.getStatus());
+        assertEquals(30L, levelOne.getApproverId());
+        assertEquals(ApprovalStepStatus.PENDING, levelTwo.getStatus());
+        verifyNoInteractions(budgetService);
+        verify(requestRepository).saveAndFlush(request);
+        verify(auditService).record(
+            request,
+            30L,
+            "APROVADOR",
+            "STEP_APPROVED",
+            PurchaseRequestStatus.PENDING_APPROVAL,
+            PurchaseRequestStatus.PENDING_APPROVAL,
+            1,
+            1,
+            ApprovalRequiredLevel.NIVEL_1,
+            "trace-maria",
+            "Aprovado por Maria"
         );
     }
 

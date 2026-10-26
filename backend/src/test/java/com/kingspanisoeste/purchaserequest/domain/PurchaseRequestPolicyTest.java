@@ -2,7 +2,9 @@ package com.kingspanisoeste.purchaserequest.domain;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +39,42 @@ class PurchaseRequestPolicyTest {
                 null,
                 false
             ));
+    }
+
+    @Test
+    void deveSepararPropriedadeDaVisibilidadeDoAprovador() {
+        PurchaseRequestEntity ownDraft = request(30L, 20L, PurchaseRequestStatus.DRAFT);
+        PurchaseRequestEntity anotherDraft = request(10L, 20L, PurchaseRequestStatus.DRAFT);
+        PurchaseRequestEntity visibleRequest = request(
+            10L, 20L, PurchaseRequestStatus.PENDING_APPROVAL);
+
+        assertTrue(policy.canView(ownDraft, 30L, "APROVADOR", 20L));
+        assertFalse(policy.canView(anotherDraft, 30L, "APROVADOR", 20L));
+        assertTrue(policy.canView(visibleRequest, 30L, "APROVADOR", 20L));
+        assertFalse(policy.canView(visibleRequest, 30L, "APROVADOR", 99L));
+    }
+
+    @Test
+    void visibilidadeNaoDeveConcederPermissaoDeEdicao() {
+        PurchaseRequestEntity visibleRequest = request(
+            10L, 20L, PurchaseRequestStatus.CHANGES_REQUESTED);
+
+        assertThrows(SecurityException.class,
+            () -> policy.requireEditPermission(visibleRequest, 30L));
+    }
+
+    @Test
+    void autoaprovacaoNaoDeveSerExpostaMesmoParaAdmin() {
+        PurchaseRequestEntity ownRequest = request(
+            10L, 20L, PurchaseRequestStatus.PENDING_APPROVAL);
+        UserEntity ownerAdmin = actor(10L, UserRole.ADMIN, null, null);
+
+        assertFalse(policy.calculateAllowedActions(
+            ownRequest,
+            ownerAdmin,
+            step(ApprovalRequiredLevel.ADMIN),
+            false
+        ).contains("APPROVE"));
     }
 
     @Test

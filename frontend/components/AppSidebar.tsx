@@ -65,6 +65,12 @@ const SIDEBAR_NAV: NavItem[] = [
     roles: ["SOLICITANTE", "APROVADOR", "ADMIN"],
   },
   {
+    href: "/dashboard/requests/cost-center",
+    label: "Solicitações do centro",
+    Icon: Building2,
+    roles: ["APROVADOR"],
+  },
+  {
     href: "/dashboard/requests/new",
     label: "Nova solicitação",
     Icon: FilePlus2,

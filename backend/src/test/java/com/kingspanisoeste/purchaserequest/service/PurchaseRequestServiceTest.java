@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -11,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kingspanisoeste.auth.entity.UserEntity;
+import com.kingspanisoeste.auth.entity.enums.ApproverLevel;
+import com.kingspanisoeste.auth.entity.enums.UserRole;
 import com.kingspanisoeste.auth.repository.UserRepository;
 import com.kingspanisoeste.budget.entity.CostCenterEntity;
 import com.kingspanisoeste.budget.repository.CostCenterRepository;
@@ -33,9 +36,15 @@ import com.kingspanisoeste.shared.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -180,6 +189,78 @@ class PurchaseRequestServiceTest {
         assertEquals("CONCURRENT_MODIFICATION", exception.getCode());
         verify(requestRepository, never()).saveAndFlush(any());
         verifyNoInteractions(auditService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    void deveListarSomenteSolicitacoesDoJwtQuandoMineForVerdadeiro(UserRole role) {
+        CostCenterEntity costCenter = costCenter(20L, true);
+        UserEntity actor = user(10L, costCenter);
+        actor.setRole(role);
+        Pageable pageable = PageRequest.of(0, 20);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(requestRepository.findByRequesterId(10L, pageable))
+            .thenReturn(Page.empty(pageable));
+
+        Page<PurchaseRequestResponseDTO> result = service.listRequests(
+            pageable, 10L, role.name(), true);
+
+        assertEquals(0, result.getTotalElements());
+        verify(requestRepository).findByRequesterId(10L, pageable);
+        verify(requestRepository, never()).findAll(pageable);
+    }
+
+    @Test
+    void devePreservarVisibilidadeDoCentroParaAprovadorQuandoMineForFalso() {
+        CostCenterEntity costCenter = costCenter(20L, true);
+        UserEntity actor = user(10L, costCenter);
+        actor.setRole(UserRole.APROVADOR);
+        Pageable pageable = PageRequest.of(0, 20);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(actor));
+        when(requestRepository.findAll(
+                any(Specification.class), eq(pageable)))
+            .thenReturn(Page.empty(pageable));
+
+        service.listRequests(pageable, 10L, "APROVADOR", false);
+
+        verify(requestRepository).findAll(
+            any(Specification.class), eq(pageable));
+        verify(requestRepository, never()).findByRequesterId(10L, pageable);
+    }
+
+    @Test
+    void deveConsultarInboxSomentePelosCriteriosDeElegibilidade() {
+        CostCenterEntity costCenter = costCenter(20L, true);
+        UserEntity actor = new UserEntity(
+            "Aprovadora",
+            "approver@email.com",
+            "hash",
+            costCenter,
+            ApproverLevel.NIVEL_2
+        );
+        actor.setId(30L);
+        Pageable pageable = PageRequest.of(0, 20);
+        when(userRepository.findById(30L)).thenReturn(Optional.of(actor));
+        when(requestRepository.findApprovalInbox(
+                30L,
+                "APROVADOR",
+                20L,
+                "NIVEL_2",
+                pageable))
+            .thenReturn(Page.empty(pageable));
+
+        Page<PurchaseRequestResponseDTO> result = service.listApprovalInbox(
+            pageable, 30L);
+
+        assertEquals(0, result.getTotalElements());
+        verify(requestRepository).findApprovalInbox(
+            30L,
+            "APROVADOR",
+            20L,
+            "NIVEL_2",
+            pageable
+        );
+        verify(requestRepository, never()).findByRequesterId(30L, pageable);
     }
 
     private CreatePurchaseRequestDTO createDto(BigDecimal clientSubtotal) {

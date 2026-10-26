@@ -226,3 +226,59 @@ One block per agent turn, one row per changed file:
 | `frontend/app/dashboard/approvals/page.tsx` | modified | +7 | -18 |
 | `frontend/lib/api/approvals.ts` | modified | +16 | -2 |
 | `frontend/lib/tests/approvals.test.ts` | created | +76 | -0 |
+
+---
+### Turn 2026-10-25 20:56:03 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Separate owned request filtering from role visibility and approval eligibility, with backend and frontend regression tests
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/controller/PurchaseRequestController.java` | modified | +5 | -2 |
+| `backend/src/main/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestService.java` | modified | +8 | -2 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/controller/PurchaseRequestControllerTest.java` | created | +42 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/domain/PurchaseRequestPolicyTest.java` | modified | +38 | -0 |
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestServiceTest.java` | modified | +45 | -0 |
+| `frontend/app/dashboard/requests/page.tsx` | modified | +1 | -1 |
+| `frontend/lib/api/requests.ts` | modified | +7 | -2 |
+| `frontend/lib/hooks/useRequests.ts` | modified | +7 | -5 |
+| `frontend/lib/tests/requests.test.ts` | created | +40 | -0 |
+
+---
+### Turn 2026-10-25 21:09:14 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Add regression coverage preserving approval inbox eligibility independently from owned request filtering
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/PurchaseRequestServiceTest.java` | modified | +36 | -0 |
+
+---
+### Turn 2026-10-25 21:20:13 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Add a separate approver cost-center request listing while keeping owned requests and approval inbox distinct
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `frontend/app/dashboard/requests/cost-center/page.tsx` | created | +12 | -0 |
+| `frontend/app/dashboard/requests/page.tsx` | modified | +8 | -320 |
+| `frontend/components/AppSidebar.tsx` | modified | +6 | -0 |
+| `frontend/components/RequestsListPage.tsx` | created | +252 | -0 |
+| `frontend/lib/tests/requests.test.ts` | modified | +15 | -1 |
+
+---
+### Turn 2026-10-25 21:31:28 -0300 · Codex
+- **Source**: command
+- **Session**: n/a
+- **Prompt**: n/a
+- **Summary**: Add and verify regression coverage allowing an eligible Maria approver to approve request 2 at the NIVEL_1 step
+
+| File | Change | Additions | Removals |
+|---|---|---|---|
+| `backend/src/test/java/com/kingspanisoeste/purchaserequest/service/ApprovalServiceTest.java` | modified | +61 | -0 |

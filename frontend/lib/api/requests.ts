@@ -18,6 +18,10 @@ export interface RequestRow {
   status: RequestStatus;
 }
 
+export interface ListRequestsOptions {
+  mine?: boolean;
+}
+
 const statuses: RequestStatus[] = [
   "DRAFT",
   "PENDING_APPROVAL",
@@ -107,8 +111,9 @@ function normalizeRequest(value: unknown): RequestRow {
 }
 
 export const requestsApi = {
-  async list(): Promise<RequestRow[]> {
-    const response = await apiRequest<unknown>("/requests", {
+  async list(options: ListRequestsOptions = {}): Promise<RequestRow[]> {
+    const path = options.mine ? "/requests?mine=true" : "/requests";
+    const response = await apiRequest<unknown>(path, {
       method: "GET",
     });
 

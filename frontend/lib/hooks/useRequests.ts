@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 
 import {
   requestsApi,
+  type ListRequestsOptions,
   type RequestRow,
 } from "@/lib/api/requests";
 
@@ -16,7 +17,8 @@ type RequestsSnapshot = {
   error: string | null;
 };
 
-export function useRequests() {
+export function useRequests(options: ListRequestsOptions = {}) {
+  const mine = options.mine ?? false;
   const token = useSelector(
     (state: { auth: AuthState }) => state.auth.accessToken
   );
@@ -25,7 +27,7 @@ export function useRequests() {
   const [snapshot, setSnapshot] =
     useState<RequestsSnapshot | null>(null);
 
-  const key = token ? `${token}:${refreshCount}` : null;
+  const key = token ? `${token}:${mine}:${refreshCount}` : null;
 
   useEffect(() => {
     if (!key) return;
@@ -33,7 +35,7 @@ export function useRequests() {
     let active = true;
 
     requestsApi
-      .list()
+      .list({ mine })
       .then((data) => {
         if (active) {
           setSnapshot({
@@ -59,7 +61,7 @@ export function useRequests() {
     return () => {
       active = false;
     };
-  }, [key]);
+  }, [key, mine]);
 
   const current = snapshot?.key === key ? snapshot : null;
 
